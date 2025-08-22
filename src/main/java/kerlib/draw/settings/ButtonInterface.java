@@ -16,7 +16,7 @@ public interface ButtonInterface {
         ;
     }
     
-    /**Получение значения текста по ключу
+    /**Создание кнопки по ключу
      * @param key ключ кнопки
      * @param button объект кнопки
      */
