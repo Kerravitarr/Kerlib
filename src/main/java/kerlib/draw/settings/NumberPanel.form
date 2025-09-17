@@ -66,7 +66,7 @@
         </Component>
         <Component class="javax.swing.JLabel" name="spinnerUnvisible">
           <Properties>
-            <Property name="text" type="java.lang.String" value="&#x22ee;"/>
+            <Property name="text" type="java.lang.String" value="&#x2192;"/>
           </Properties>
         </Component>
         <Component class="javax.swing.JScrollBar" name="scroll">

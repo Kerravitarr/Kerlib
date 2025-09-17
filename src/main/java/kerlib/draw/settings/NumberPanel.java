@@ -17,17 +17,74 @@ import java.awt.event.MouseEvent;
  * @author Kerravitarr
  * @param <NumberT> тип числового значения
  */
-public class NumberPanel<NumberT extends Number & Comparable<NumberT>> extends AbstractPanel<NumberT> {			
-    ///Создаёт панельку настройки
+public class NumberPanel<NumberT extends Number & Comparable<NumberT>> extends AbstractPanel<NumberT> {	
+    ///Модель для прокрутки, которая запрещает ей сообщать об изменении состояния, если это состояние изменено в спинере
+    private static class Scrollmodel extends javax.swing.DefaultBoundedRangeModel {
+        ///Нужно ли всем сообщать, что значение изменилось?
+        private boolean isDespethers = true;
+        @Override
+        protected void fireStateChanged() {
+            if(isDespethers)
+                super.fireStateChanged();
+        }
+    }
+           
+    ///Создаёт панельку настройки.
+    ///
+    ///@param texter класс, который позволит получить подписи для элементов настройки
+    ///@param buttoner класс, который позволит обработать кнопки подписей
+    ///@param defVal значение по умолчанию
+    ///@param nowVal текущее значение
+    ///@param list слушатель, который сработает, когда значение изменится
+    public NumberPanel(TextInterface texter,ButtonInterface buttoner, NumberT defVal, NumberT nowVal, java.util.function.Consumer<NumberT> list) {
+        this(texter, buttoner, null, defVal, null, null, null, nowVal, null, null, list);
+    }       
+    ///Создаёт панельку настройки.
+    ///
+	/// @param name название настройки, что будет у неё в заголовке
+    ///@param defVal значение по умолчанию
+    ///@param nowVal текущее значение
+    ///@param list слушатель, который сработает, когда значение изменится
+    public NumberPanel(String name, NumberT defVal, NumberT nowVal, java.util.function.Consumer<NumberT> list) {
+        this(name, null, defVal, null, null, null, nowVal, null, null, list);
+    } 
+    ///Создаёт панельку настройки.
+    ///
+    ///@param texter класс, который позволит получить подписи для элементов настройки
+    ///@param buttoner класс, который позволит обработать кнопки подписей
+    ///@param defVal значение по умолчанию
+    ///@param mi манимально возможное значение
+    ///@param nowVal текущее значение
+    ///@param ma максимально возможное значение
+    ///@param list слушатель, который сработает, когда значение изменится
+    public NumberPanel(TextInterface texter,ButtonInterface buttoner, NumberT defVal, Comparable<NumberT> mi, NumberT nowVal, Comparable<NumberT> ma, java.util.function.Consumer<NumberT> list) {
+        this(texter, buttoner, null, defVal, null, null, mi, nowVal, ma, null, list);
+    }
+    ///Создаёт панельку настройки.
+    ///
+	/// @param name название настройки, что будет у неё в заголовке
+    ///@param defVal значение по умолчанию
+    ///@param mi манимально возможное значение
+    ///@param nowVal текущее значение
+    ///@param ma максимально возможное значение
+    ///@param list слушатель, который сработает, когда значение изменится
+    public NumberPanel(String name, NumberT defVal, Comparable<NumberT> mi, NumberT nowVal, Comparable<NumberT> ma, java.util.function.Consumer<NumberT> list) {
+        this(name, null, defVal, null, null, mi, nowVal, ma, null, list);
+    }
+    ///Создаёт панельку настройки.
     ///Если minS или maxS не заданы, то панелька будет выглядеть проще:
-    ///ЗНАЧЕНИЕ      [RESET]
+    ///ВВОД [RESET]
     ///Если панелька используется для целочисленных значений:
     ///  и при этом разница maxS - minS > 1, то будет весь комплект
-    ///     ЗНАЧЕНИЕ ****-**** [RESET]
+    ///     ВВОД ****-**** [RESET]
     ///  А вот если maxS - minS меньше 1, то слайдера не буедт! Будет опять базовое:
-    ///     ЗНАЧЕНИЕ      [RESET]
+    ///     ВВОД      [RESET]
     ///Наконец, если панелька используется для чисел с плавающей запятой
-    ///  Если разница между maxS - minS > 100, 
+    ///  Если разница между maxS - minS > 100, то всё будет как и задумывалось
+    ///     ВВОД ****-**** [RESET]
+    ///  Однако, если разница меньше 100, то вместо этого слайдер будет представлять значение
+    ///     от 0 до 99 - в процентах оно будет. Таким образом для чисел с плавающей запятой не
+    ///     требуется отдельно добавлять размерные коэффициенты!
     ///
     ///@param texter класс, который позволит получить подписи для элементов настройки
     ///@param buttoner класс, который позволит обработать кнопки подписей
@@ -38,28 +95,149 @@ public class NumberPanel<NumberT extends Number & Comparable<NumberT>> extends A
     ///@param nowVal текущее значение
     ///@param ma максимально возможное значение
     ///@param list слушатель, который сработает, когда значение изменится
+    public NumberPanel(TextInterface texter,ButtonInterface buttoner, Number minS, NumberT defVal, Number maxS, Comparable<NumberT> mi, NumberT nowVal, Comparable<NumberT> ma, java.util.function.Consumer<NumberT> list) {
+        this(texter, buttoner, minS, defVal, maxS, null, mi, nowVal, ma, null, list);
+    }
+    ///Создаёт панельку настройки.
+    ///Если minS или maxS не заданы, то панелька будет выглядеть проще:
+    ///ВВОД [RESET]
+    ///Если панелька используется для целочисленных значений:
+    ///  и при этом разница maxS - minS > 1, то будет весь комплект
+    ///     ВВОД ****-**** [RESET]
+    ///  А вот если maxS - minS меньше 1, то слайдера не буедт! Будет опять базовое:
+    ///     ВВОД      [RESET]
+    ///Наконец, если панелька используется для чисел с плавающей запятой
+    ///  Если разница между maxS - minS > 100, то всё будет как и задумывалось
+    ///     ВВОД ****-**** [RESET]
+    ///  Однако, если разница меньше 100, то вместо этого слайдер будет представлять значение
+    ///     от 0 до 99 - в процентах оно будет. Таким образом для чисел с плавающей запятой не
+    ///     требуется отдельно добавлять размерные коэффициенты!
+    ///
+	/// @param name название настройки, что будет у неё в заголовке
+    ///@param minS минимальное значение слайдера
+    ///@param defVal значение по умолчанию
+    ///@param maxS максимальное значение слайдера
+    ///@param mi манимально возможное значение
+    ///@param nowVal текущее значение
+    ///@param ma максимально возможное значение
+    ///@param list слушатель, который сработает, когда значение изменится
+    public NumberPanel(String name, Number minS, NumberT defVal, Number maxS, Comparable<NumberT> mi, NumberT nowVal, Comparable<NumberT> ma, java.util.function.Consumer<NumberT> list) {
+        this(name, minS, defVal, maxS, null, mi, nowVal, ma, null, list);
+    }
+    ///Создаёт панельку настройки.
+    ///Если minS или maxS не заданы, то панелька будет выглядеть проще:
+    ///ВВОД [RESET]
+    ///Если панелька используется для целочисленных значений:
+    ///  и при этом разница maxS - minS > 1, то будет весь комплект
+    ///     ВВОД ****-**** [RESET]
+    ///  А вот если maxS - minS меньше 1, то слайдера не буедт! Будет опять базовое:
+    ///     ВВОД      [RESET]
+    ///Наконец, если панелька используется для чисел с плавающей запятой
+    ///  Если разница между maxS - minS >= 100, то всё будет как и задумывалось
+    ///     ВВОД ****-**** [RESET]
+    ///  Однако, если разница меньше 100, то вместо этого слайдер будет представлять значение
+    ///     от 0 до 99 - в процентах оно будет. Таким образом для чисел с плавающей запятой не
+    ///     требуется отдельно добавлять размерные коэффициенты!
+    ///
+	/// @param name название настройки, что будет у неё в заголовке
+    ///@param minS минимальное значение слайдера
+    ///@param defVal значение по умолчанию
+    ///@param maxS максимальное значение слайдера
+    ///@param blockIncrementS если maxS и maxS заданы, NumberT - целочисленное, или maxS - minS >= 100, то это поле показывает на сколько будет прыжков перемещаться слайдер за один клик рядом с полосой
+    ///@param mi манимально возможное значение
+    ///@param nowVal текущее значение
+    ///@param ma максимально возможное значение
+    ///@param step шаг, с которым изменяется значение у scroll за поворот. По умолчанию, если заданы значения mi и ma, то используется 1/100 от их разницы!
+    ///@param list слушатель, который сработает, когда значение изменится
+    public NumberPanel(String name, Number minS, NumberT defVal, Number maxS,Integer blockIncrementS, Comparable<NumberT> mi, NumberT nowVal, Comparable<NumberT> ma, NumberT step, java.util.function.Consumer<NumberT> list) {
+        this(name,null, null, minS, defVal, maxS, blockIncrementS, mi, nowVal, ma, step, list);
+    }
+    ///Создаёт панельку настройки.
+    ///Если minS или maxS не заданы, то панелька будет выглядеть проще:
+    ///ВВОД [RESET]
+    ///Если панелька используется для целочисленных значений:
+    ///  и при этом разница maxS - minS > 1, то будет весь комплект
+    ///     ВВОД ****-**** [RESET]
+    ///  А вот если maxS - minS меньше 1, то слайдера не буедт! Будет опять базовое:
+    ///     ВВОД      [RESET]
+    ///Наконец, если панелька используется для чисел с плавающей запятой
+    ///  Если разница между maxS - minS >= 100, то всё будет как и задумывалось
+    ///     ВВОД ****-**** [RESET]
+    ///  Однако, если разница меньше 100, то вместо этого слайдер будет представлять значение
+    ///     от 0 до 99 - в процентах оно будет. Таким образом для чисел с плавающей запятой не
+    ///     требуется отдельно добавлять размерные коэффициенты!
+    ///
+    ///@param texter класс, который позволит получить подписи для элементов настройки
+    ///@param buttoner класс, который позволит обработать кнопки подписей
+    ///@param minS минимальное значение слайдера
+    ///@param defVal значение по умолчанию
+    ///@param maxS максимальное значение слайдера
+    ///@param blockIncrementS если maxS и maxS заданы, NumberT - целочисленное, или maxS - minS >= 100, то это поле показывает на сколько будет прыжков перемещаться слайдер за один клик рядом с полосой
+    ///@param mi манимально возможное значение
+    ///@param nowVal текущее значение
+    ///@param ma максимально возможное значение
+    ///@param step шаг, с которым изменяется значение у scroll за поворот. По умолчанию, если заданы значения mi и ma, то используется 1/100 от их разницы!
+    ///@param list слушатель, который сработает, когда значение изменится
     public NumberPanel(TextInterface texter,ButtonInterface buttoner, Number minS, NumberT defVal, Number maxS,Integer blockIncrementS, Comparable<NumberT> mi, NumberT nowVal, Comparable<NumberT> ma, NumberT step, java.util.function.Consumer<NumberT> list) {
+        this(null,texter, buttoner, minS, defVal, maxS, blockIncrementS, mi, nowVal, ma, step, list);
+    }
+    ///Создаёт панельку настройки.
+    ///Если minS или maxS не заданы, то панелька будет выглядеть проще:
+    ///ВВОД [RESET]
+    ///Если панелька используется для целочисленных значений:
+    ///  и при этом разница maxS - minS > 1, то будет весь комплект
+    ///     ВВОД ****-**** [RESET]
+    ///  А вот если maxS - minS меньше 1, то слайдера не буедт! Будет опять базовое:
+    ///     ВВОД      [RESET]
+    ///Наконец, если панелька используется для чисел с плавающей запятой
+    ///  Если разница между maxS - minS >= 100, то всё будет как и задумывалось
+    ///     ВВОД ****-**** [RESET]
+    ///  Однако, если разница меньше 100, то вместо этого слайдер будет представлять значение
+    ///     от 0 до 99 - в процентах оно будет. Таким образом для чисел с плавающей запятой не
+    ///     требуется отдельно добавлять размерные коэффициенты!
+    ///
+    ///@param texter класс, который позволит получить подписи для элементов настройки
+    ///@param buttoner класс, который позволит обработать кнопки подписей
+    ///@param minS минимальное значение слайдера
+    ///@param defVal значение по умолчанию
+    ///@param maxS максимальное значение слайдера
+    ///@param blockIncrementS если maxS и maxS заданы, NumberT - целочисленное, или maxS - minS >= 100, то это поле показывает на сколько будет прыжков перемещаться слайдер за один клик рядом с полосой
+    ///@param mi манимально возможное значение
+    ///@param nowVal текущее значение
+    ///@param ma максимально возможное значение
+    ///@param step шаг, с которым изменяется значение у scroll за поворот. По умолчанию, если заданы значения mi и ma, то используется 1/100 от их разницы!
+    ///@param list слушатель, который сработает, когда значение изменится
+    private NumberPanel(String name, TextInterface texter,ButtonInterface buttoner, Number minS, NumberT defVal, Number maxS,Integer blockIncrementS, Comparable<NumberT> mi, NumberT nowVal, Comparable<NumberT> ma, NumberT step, java.util.function.Consumer<NumberT> list) {
 		java.util.Objects.requireNonNull(nowVal, "Текущее значение обязано быть числом!");
         MainClazz = (Class<NumberT>) nowVal.getClass();
+        if(texter == null)
+            texter = k -> k == TextInterface.Key.LABEL ? name : null;
+        if(buttoner == null)
+            buttoner = (k,b) -> b.setText("↻");
         initComponents();
         initLabel(label, texter);
         initReset(reset, buttoner, texter, defVal);
-        valueSpiner.setModel(new javax.swing.SpinnerNumberModel(kerlib.tools.unbox(MainClazz, nowVal.doubleValue() == 0 ? 1 : 0),mi,ma,step));
+        step = (NumberT)(mi == null || ma == null || !(mi instanceof Number) || !(ma instanceof Number || step != null) ? (step == null ? kerlib.tools.unbox(MainClazz,1) : step) : (kerlib.tools.unbox(MainClazz,(((Number)ma).doubleValue() - ((Number)mi).doubleValue())/100d )));
+        valueSpiner.setModel(new javax.swing.SpinnerNumberModel(nowVal,mi,ma,step));
         if (mi == null && ma == null)       valueSpiner.setToolTipText("V ∈ R");
 		else if (mi != null && ma == null)  valueSpiner.setToolTipText("V ≥ " + mi.toString());
 		else if (mi == null && ma != null)  valueSpiner.setToolTipText("V ≤ " + ma.toString());
 		else                                valueSpiner.setToolTipText("V ∈ [" + mi + "," + ma + "]");
-		if(minS == null || maxS == null || !isFloat() && (maxS.longValue() - minS.longValue()) < 2){
+        var hideScroll = minS == null || maxS == null || !isFloat() && (maxS.longValue() - minS.longValue()) < 2;
+        var scrollAsPercent = !hideScroll && (isFloat() && (maxS.longValue() - minS.longValue()) < 100);
+        scroll.setModel(new Scrollmodel());
+		if(hideScroll){
 			scroll.setVisible(false);
             spinnerUnvisible.setVisible(false);
             valueSpiner.setVisible(true);
 		} else {
             valueSpiner.setVisible(false);
-            if(isFloat() && (maxS.longValue() - minS.longValue()) < 100){
+            if(scrollAsPercent){
                 scroll.setBlockIncrement(10);
                 scroll.setMinimum(0);
                 scroll.setMaximum(99);
                 var delta = minS.doubleValue() - maxS.doubleValue();
+                scroll.setValue(kerlib.tools.betwin(0, (int) Math.round((nowVal.doubleValue() - minS.doubleValue()) / (minS.doubleValue() - maxS.doubleValue())), 99));
                 scroll.addAdjustmentListener(e ->{
                     value(kerlib.tools.unbox(MainClazz,minS.doubleValue() + e.getValue() * delta));
                 });
@@ -68,6 +246,7 @@ public class NumberPanel<NumberT extends Number & Comparable<NumberT>> extends A
                     scroll.setBlockIncrement(blockIncrementS);
                 scroll.setMinimum(minS.intValue());
                 scroll.setMaximum(maxS.intValue());
+                scroll.setValue(kerlib.tools.betwin(minS.intValue(), nowVal.intValue(), maxS.intValue()));
                 scroll.addAdjustmentListener(e -> {
                     value(kerlib.tools.unbox(MainClazz, e.getValue()));
                 });
@@ -77,13 +256,23 @@ public class NumberPanel<NumberT extends Number & Comparable<NumberT>> extends A
             @Override
             public void mouseClicked(MouseEvent e) {
                 valueSpiner.setVisible(!valueSpiner.isVisible());
+                scroll.setVisible(!valueSpiner.isVisible());
+                spinnerUnvisible.setText(valueSpiner.isVisible() ? "←" : "→");
             }
         });
 		value(nowVal);
 		listener = list;
         valueSpiner.addChangeListener(_ -> {
-            scroll.setValue(0);
             value = kerlib.tools.unbox(MainClazz, valueSpiner.getValue());
+            var a = (Scrollmodel) scroll.getModel();
+            a.isDespethers = false;
+            if(!hideScroll){
+                if(scrollAsPercent)
+                    scroll.setValue(kerlib.tools.betwin(0, (int) Math.round((value.doubleValue() - minS.doubleValue()) / (minS.doubleValue() - maxS.doubleValue())), 99));
+                else
+                    scroll.setValue(kerlib.tools.betwin(minS.intValue(), value.intValue(), maxS.intValue()));
+            }
+            a.isDespethers = true;
             editValue();
         });
 	}
@@ -144,7 +333,7 @@ public class NumberPanel<NumberT extends Number & Comparable<NumberT>> extends A
         valueSpiner.setModel(new javax.swing.SpinnerNumberModel());
         centralPanel.add(valueSpiner);
 
-        spinnerUnvisible.setText("⋮");
+        spinnerUnvisible.setText("→");
         centralPanel.add(spinnerUnvisible);
 
         scroll.setBlockIncrement(1);

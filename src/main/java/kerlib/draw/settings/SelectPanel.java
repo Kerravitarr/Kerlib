@@ -14,6 +14,17 @@ import java.util.Arrays;
 public class SelectPanel<T> extends AbstractPanel<T> {
 	/**
 	* Создаёт панельку настройки
+	* @param name название настройки, что будет у неё в заголовке
+	* @param values все доступные значения
+	* @param defVal значение по умолчанию
+	* @param nowVal текущее значение
+	* @param list слушатель, который сработает, когда значение изменится
+	*/
+   public SelectPanel(String name, T[] values, T defVal, T nowVal, java.util.function.Consumer<T> list) {
+       this(k -> k == TextInterface.Key.LABEL ? name : null,(k,b) -> {b.setText("↻");},values, defVal,nowVal, list);
+   }
+	/**
+	* Создаёт панельку настройки
 	 * @param texter класс, который позволит получить подписи для элементов настройки
 	 * @param buttoner класс, который позволит обработать кнопки подписей
 	* @param values все доступные значения

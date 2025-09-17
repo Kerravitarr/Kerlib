@@ -61,4 +61,35 @@ public class tools {
         if(sl < 0) return -1;
         else return sl / OSMXB.getAvailableProcessors();
     }
+    
+    /**
+	 * Приравнивает число к интервалу [min,max]
+	 * @param min минимальное значение, меньше которого выходное число точно не будет
+	 * @param val число, которое нужно ограничить
+	 * @param max максимальное значение, больше которого выходное число точно не будет
+	 * @return 
+	 */
+	public static double betwin(double min, double val, double max) {
+        return val > max ? max : (val < min ? min : val);
+	}
+	/**
+	 * Приравнивает число к интервалу [min,max]
+	 * @param min минимальное значение, меньше которого выходное число точно не будет
+	 * @param val число, которое нужно ограничить
+	 * @param max максимальное значение, больше которого выходное число точно не будет
+	 * @return 
+	 */
+	public static float betwin(float min, float val, float max) {
+        return val > max ? max : (val < min ? min : val);
+	}	
+	/**
+	 * Приравнивает число к интервалу [min,max]
+	 * @param min минимальное значение, меньше которого выходное число точно не будет
+	 * @param val число, которое нужно ограничить
+	 * @param max максимальное значение, больше которого выходное число точно не будет
+	 * @return 
+	 */
+	public static int betwin(int min, int val, int max) {
+        return val > max ? max : (val < min ? min : val);
+	}	
 }

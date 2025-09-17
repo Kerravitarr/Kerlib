@@ -12,26 +12,36 @@ import java.util.Objects;
  * @author Kerravitarr
  */
 public class BooleanPanel extends AbstractPanel<Boolean> {	
+    /**
+	* Создаёт панельку настройки
+	* @param name название настройки, что будет у неё в заголовке
+	* @param nowVal текущее значение
+	* @param list слушатель, который сработает, когда значение изменится
+	*/
+    public BooleanPanel(String name, boolean nowVal, java.util.function.Consumer<Boolean> list) {
+		this(k -> k == TextInterface.Key.LABEL ? name : null, nowVal, list);
+	}
 	/**
 	* Создаёт панельку настройки
 	* @param texter класс, который позволит получить подписи для элементов настройки
 	* @param nowVal текущее значение
 	* @param list слушатель, который сработает, когда значение изменится
 	*/
-   public BooleanPanel(TextInterface texter, boolean nowVal, java.util.function.Consumer<Boolean> list) {
+    public BooleanPanel(TextInterface texter, boolean nowVal, java.util.function.Consumer<Boolean> list) {
 		initComponents();
         initLabel(_label, texter);
 		_checkBox.setToolTipText(texter.text(TextInterface.Key.TOOLTIPTEXT));
 		value(!(value = !nowVal));
 		
 		listener = list;
-        _checkBox.addChangeListener(l -> editValue());
+        _checkBox.addChangeListener(_ -> value(_checkBox.isSelected()));
 	}
 	@Override
 	public void value(Boolean val) {
 		if(!Objects.equals(value, val)){
 			value = val;
 			_checkBox.setSelected(val);
+            editValue();
 		}
 	}
     

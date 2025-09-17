@@ -16,6 +16,16 @@ import javax.swing.event.DocumentListener;
 public class StringPanel extends AbstractPanel<String> {
 	/**
 	* Создаёт панельку настройки
+	* @param name название настройки, что будет у неё в заголовке
+	* @param defVal значение по умолчанию
+	* @param nowVal текущее значение
+	* @param list слушатель, который сработает, когда значение изменится
+	*/
+   public StringPanel(String name, String defVal, String nowVal,  java.util.function.Consumer<String> list) {
+       this(k -> k == TextInterface.Key.LABEL ? name : null,(k,b) -> {b.setText("↻");}, defVal,nowVal, list);
+   }
+	/**
+	* Создаёт панельку настройки
 	 * @param texter класс, который позволит получить подписи для элементов настройки
 	 * @param buttoner класс, который позволит обработать кнопки подписей
 	* @param defVal значение по умолчанию

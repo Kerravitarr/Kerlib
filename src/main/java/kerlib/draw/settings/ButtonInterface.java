@@ -13,6 +13,8 @@ public interface ButtonInterface {
     enum Key{
         ///Кнопка сброса значения по умолчанию
         RESET,
+        ///Кнопка только для PointPanel. Это кнопка выбора точки на экране
+        SELECT,
         ;
     }
     
