@@ -72,26 +72,28 @@ public class tools {
 	 */
 	public static void arrow(Graphics g, double x0, double y0, derect d, double lenght, double angl) {
 		angl = Math.toRadians(angl);
-		double move = 0;
-		switch (d) {
-		case Up:
-			move = Math.PI / 2;
-			break;
-		case Left:
-			move = 0;
-			break;
-		case Down:
-			move = -Math.PI / 2;
-			break;
-		case Right:
-			move = Math.PI;
-			break;
-		default:
-			break;
-		}
-		double an = move + angl;
+		var move = switch (d) {
+            case Up ->  Math.PI / 2;
+            case Left -> 0;
+            case Down -> -Math.PI / 2;
+            case Right -> Math.PI;
+            default -> 0;
+		};
+        arrow(g, x0, y0, move, lenght, angl);
+	}
+    /**
+	 * Рисует стрелку
+	 * @param g
+	 * @param x0 - положение
+	 * @param y0
+	 * @param d - направление, в радианах
+	 * @param lenght - длина усов
+	 * @param angl - угол между стрелками, в радианах
+	 */
+	public static void arrow(Graphics g, double x0, double y0, double d, double lenght, double angl) {
+		double an = d + angl;
 		g.drawLine(kerlib.tools.round(x0), kerlib.tools.round(y0), kerlib.tools.round(lenght * Math.cos(an) + x0), kerlib.tools.round(lenght * Math.sin(an) + y0));
-		an = move - angl;
+		an = d - angl;
 		g.drawLine(kerlib.tools.round(x0), kerlib.tools.round(y0), kerlib.tools.round(lenght * Math.cos(an) + x0), kerlib.tools.round(lenght * Math.sin(an) + y0));
 	}
 

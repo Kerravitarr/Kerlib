@@ -4,6 +4,9 @@
  */
 package kerlib;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  *
  * @author zeus
@@ -92,4 +95,62 @@ public class tools {
 	public static int betwin(int min, int val, int max) {
         return val > max ? max : (val < min ? min : val);
 	}	
+    
+    @FunctionalInterface public interface Worker {void something();}
+    /** @param doing будет выполнена, только если включены assert (запуск с флагом -enableassertions)*/
+    public static void isAssert(Worker doing){
+        assert(((java.util.function.Supplier<Object>)() -> {doing.something(); return null;}).get() == null);
+        noAssert(() -> Logger.getLogger(tools.class.getName()).log(Level.SEVERE, "Остался отладочный код!!!"));
+    }
+    /** @param doing будет выполнена, только если НЕ включены assert (запуск без флага -enableassertions)*/
+    public static void noAssert(Worker doing){
+        var isA = false;
+        assert(isA = true);
+        if(!isA) doing.something();
+    }
+    ///Функция, возвращающая разное значение в зависимости от ключённого режима
+    ///Нужна для отладки. Для того, чтобы у приложения был разный режим в зависимости от включённого режима предупреждений
+    /// @param <T> тип
+    /// @param noAssert возвращаемое значение в нормальном режиме
+    /// @param isAssert возвращаемое значение, если приложение запущено с флагом -enableassertions
+    /// @return флаг -enableassertions ? isAssert : noAssert
+    public static <T> T isAssert(T noAssert, T isAssert){
+        var isA = false;
+        assert(isA = true);
+        if(!isA)
+            Logger.getLogger(tools.class.getName()).log(Level.SEVERE, "Остался отладочный код!!!");
+        return isA ? isAssert : noAssert;
+    }
+    ///Экранирует все неподходящие символы, чтобы текст корректно отображался в html
+    ///@param s входная строка
+    ///@return текст с экранированными символами
+    public static String escape(String s) {
+        var builder = new StringBuilder();
+        var previousWasASpace = false;
+        for( var c : s.toCharArray() ) {
+            if( c == ' ' ) {
+                if( previousWasASpace ) {
+                    builder.append("&nbsp;");
+                    previousWasASpace = false;
+                    continue;
+                }
+                previousWasASpace = true;
+            } else {
+                previousWasASpace = false;
+            }
+            switch(c) {
+                case '<' -> builder.append("&lt;");
+                case '>' -> builder.append("&gt;");
+                case '&' -> builder.append("&amp;");
+                case '"' -> builder.append("&quot;");
+                case '\n' -> builder.append("<br>");
+                case '\t' -> builder.append("&nbsp; &nbsp; &nbsp;");
+                default -> {
+                    if( c < 128 ) builder.append(c);
+                    else builder.append("&#").append((int)c).append(";");
+                }
+            }
+        }
+        return builder.toString();
+    }
 }
