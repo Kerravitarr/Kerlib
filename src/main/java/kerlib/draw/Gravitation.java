@@ -4,6 +4,8 @@
  */
 package kerlib.draw;
 
+import java.util.Collection;
+import java.util.Iterator;
 import kerlib.json.JSON;
 import java.util.List;
 import java.util.function.Function;
@@ -35,7 +37,7 @@ public class Gravitation<T> {
         ///@param j объект, из которого надо восстановить данные
         public void fromJSON(JSON j){center.x = j.get(double.class,"x");center.y = j.get(double.class,"y");}
         
-        ///Функция, которая вызывается, когда объект надо обновить
+        ///Функция, которая вызывается, после того, как местопложение объекта будет обновлено
         protected void update(){};
         ///@return true, если объект надо зафиксировать
         protected boolean isFix(){return false;}
@@ -52,20 +54,28 @@ public class Gravitation<T> {
     ///Функция получения данных по конкретной планете
     private final java.util.function.Function<T,? extends Planet> tp;
     ///Функция получения друзей планеты. Другими словами - тех узлов, с которыми она связана
-    private final java.util.function.Function<T,List<T>> friends;
+    private final java.util.function.Function<T,Collection<T>> friends;
     ///Функция получения из относительных координат - абсолютные
-    private final java.util.function.Function<Double, Double> transformX;
+    private java.util.function.Function<Double, Double> transformX;
     ///Функция получения из относительных координат - абсолютные
-    private final java.util.function.Function<Double, Double> transformY;
+    private java.util.function.Function<Double, Double> transformY;
     ///Все узлы, с которыми мы работаем. Сылка на реальный массив
-    private List<T> nodes;
+    private Collection<T> nodes;
+    ///Температура, нужная, чтобы граф всегда немного "дышал". Он так лучше находит минимум
+    private double floatTmp = 0;
+    ///Минимальная и максимальная гипотинузы на прошлом шаге моделирования
+    private double minHyp = 0;
+    ///Минимальная и максимальная гипотинузы на прошлом шаге моделирования
+    private double maxHyp = 0;
+    ///Отношение ширины экрана к высоте. W/H
+    private double w_h = 1;
 
     ///Создать обработчик гравитацаа
     /// @param transformX Функция получения из относительных координат - абсолютные
     /// @param transformY Функция получения из относительных координат - абсолютные
     ///@param tp функция получения из объекта списка, объект планеты
     ///@param friends функция получения друзей планеты, для отображения взаимодействия с ней
-    public Gravitation(java.util.function.Function<Double, Double> transformX,java.util.function.Function<Double, Double> transformY, Function<T, Planet> tp, Function<T, List<T>> friends) {
+    public Gravitation(java.util.function.Function<Double, Double> transformX, java.util.function.Function<Double, Double> transformY, Function<T, Planet> tp, Function<T, Collection<T>> friends) {
         this.tp = tp;
         this.friends = friends;
         this.transformX = transformX;
@@ -76,16 +86,32 @@ public class Gravitation<T> {
     /// @param transformX Функция получения из относительных координат - абсолютные
     /// @param transformY Функция получения из относительных координат - абсолютные
     /// @param friends функция получения друзей планеты, для отображения взаимодействия с ней
-    public <V extends Planet>Gravitation(java.util.function.Function<Double, Double> transformX,java.util.function.Function<Double, Double> transformY, Function<V, List<V>> friends){
-        this(transformX,transformY, v -> (Planet)v, f -> (List<T>)friends.apply((V)f));
+    public <V extends Planet>Gravitation(java.util.function.Function<Double, Double> transformX, java.util.function.Function<Double, Double> transformY, Function<V, Collection<V>> friends){
+        this(transformX,transformY, v -> (Planet)v, f -> (Collection<T>)friends.apply((V)f));
+    }
+    ///Создание обработчика гравитации для объекта - наследника планеты
+    /// @param friends функция получения друзей планеты, для отображения взаимодействия с ней
+    public Gravitation(Function<T, Collection<T>> friends){
+        this(v->v,v->v, v -> (Planet)v, f -> (Collection<T>)friends.apply((T)f));
     }
     ///@param nodes узлы, которые мы будем обрабатывать
-    public void set(List<T> nodes){
+    public void set(Collection<T> nodes){
         this.nodes = nodes;
+    }
+    ///Сохранить пропорции мира. Нужно, чтобы объекты за эти пределы не вылетали
+    ///@param width ширина мира
+    ///@param height высота мира
+    public void set(double width, double height){
+        w_h = width / height;
+    }
+    ///Сохранить функции преобразования для мира
+    public void set(java.util.function.Function<Double, Double> transformX, java.util.function.Function<Double, Double> transformY){
+        this.transformX = transformX;
+        this.transformY = transformY;
     }
     /// Инициализировать гравитацию, расставить объекты в изначальных местах
     /// @param nodes узлы, которые надо обработать
-    public void init(List<T> nodes){
+    public void init(Collection<T> nodes){
         set(nodes);
         init();
     }
@@ -98,7 +124,7 @@ public class Gravitation<T> {
             if(ehyp == 0) ehyp = h;
             else {
                 ehyp = ehyp *(1 - 0.01) + h * 0.01;
-                if(h == 0 || ehyp <= h) {
+                if(h == 0 || h - ehyp >= 0.0001 ) {
                     break;
                 }
             }
@@ -111,32 +137,34 @@ public class Gravitation<T> {
         set(nodes);
         return gravitation();
     }
-    ///Обработать воздействие графитаци
+    ///Обработать воздействие гравитаци
     /// @return максимальное расстояние от центра, или где находится самый дальний узел
     public double gravitation(){
-        //var area = width * height;
-        //var k = Math.sqrt(area / nodes.size());
         var k = Math.sqrt(1d / nodes.size());
-        for (int i = 0; i < nodes.size(); i++) {
-            final var first = tp.apply(nodes.get(i));
-            first.g = this;
-            first.forse.x = first.forse.y = 0;
-            for (int j = 0 ; j < nodes.size(); j++) {
-                if(i == j) continue;
-                final var second = tp.apply(nodes.get(j));
-                var dist = sub(first.center,second.center);
-                var hypotenuse = Math.hypot(dist.x, dist.y);
-                if(hypotenuse == 0) continue;
-                dist.x /= hypotenuse;
-                dist.y /= hypotenuse;
-                var fr = fr(hypotenuse, k);
-                first.forse.x += dist.x * fr;
-                first.forse.y += dist.y * fr;
+        {
+            var main = nodes.iterator();
+            for (var i = 0; main.hasNext();i++) {
+                var first = tp.apply(main.next());
+                first.g = this;
+                first.forse.x = first.forse.y = 0;
+                var secondi = nodes.iterator();
+                for (var j = 0; secondi.hasNext();j++) {
+                    if(i == j) continue;
+                    final var second = tp.apply(secondi.next());
+                    var dist = sub(first.center,second.center);
+                    var hypotenuse = Math.hypot(dist.x, dist.y);
+                    if(hypotenuse == 0) continue;
+                    dist.x /= hypotenuse;
+                    dist.y /= hypotenuse;
+                    var fr = fr(hypotenuse, k);
+                    first.forse.x += dist.x * fr;
+                    first.forse.y += dist.y * fr;
+                }
             }
         }
-        for (int i = 0; i < nodes.size(); i++) {
-            final var first = tp.apply(nodes.get(i));
-            for(var j : friends.apply(nodes.get(i))){
+        for (var o : nodes) {
+            final var first = tp.apply(o);
+            for(var j : friends.apply(o)){
                 final var second = tp.apply(j);
                 var dist = sub(first.center,second.center);
                 var hypotenuse = Math.hypot(dist.x, dist.y);
@@ -150,20 +178,30 @@ public class Gravitation<T> {
                 second.forse.y += dist.y * fa;
             }
         }
-        var tmp = Math.random() * 0.001;
+        floatTmp = kerlib.tools.betwin(0, floatTmp + (Math.random() - 0.5) * (maxHyp - minHyp), Math.min(maxHyp, 0.01));
         var maxHypotenuse = 0.0;
-        for (int i = 0; i < nodes.size(); i++) {
-            final var first = tp.apply(nodes.get(i));
+        var minHypotenuse = Double.MAX_VALUE;
+        for (var o : nodes) {
+            final var first = tp.apply(o);
             var hypotenuse = Math.hypot(first.forse.x, first.forse.y);
             if(!first.isFix() && Math.abs(hypotenuse) > 0.01){
                 maxHypotenuse = Math.max(maxHypotenuse, hypotenuse);
+                minHypotenuse = Math.min(minHypotenuse, hypotenuse);
                 first.forse.x /= hypotenuse;
                 first.forse.y /= hypotenuse;
-                first.move(first.forse.x*Math.min(hypotenuse, tmp), first.forse.y*Math.min(hypotenuse, tmp));
+                first.move(first.forse.x*Math.min(hypotenuse, floatTmp), first.forse.y*Math.min(hypotenuse, floatTmp));
+                if(w_h < 1){
+                    first.center.x = kerlib.tools.betwin(-w_h, first.center.x, w_h);
+                    first.center.y = kerlib.tools.betwin(-1, first.center.y, 1);
+                } else {
+                    first.center.x = kerlib.tools.betwin(-1, first.center.x, 1);
+                    first.center.y = kerlib.tools.betwin(-1/w_h, first.center.y, 1/w_h);
+                }
+                first.update();
             }
-            first.update();
         }
-        return maxHypotenuse;
+        minHyp = minHypotenuse;
+        return maxHyp = maxHypotenuse;
     }
     ///Вычисляет силу отталкивания между двумя узлами
     ///@param dist расстояние между двумя узлаими
