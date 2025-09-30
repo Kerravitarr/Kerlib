@@ -22,6 +22,24 @@ public class tools {
 	public static int round(double d) {
 		return (int) Math.round(d);
 	}
+	/**
+	 * Округляет число до нужного количества занчащих цифр
+	 * @param d округляемое число
+	 * @param digits сколько ЗНАЧАЩИХ цифр должно быть в числе
+	 * @return ближайшее число.
+	 */
+	public static double round(double d, int digits) {
+		if(d == 0) return 0;
+		else if(d > 0){
+			var pow = digits - Math.ceil(Math.log10(d));
+			var m = Math.pow(10, pow);
+			return Math.round(d*m)/((double)m);
+		} else {
+			var pow = digits - Math.ceil(Math.log10(-d));
+			var m = Math.pow(10, pow);
+			return -Math.round(-d*m)/((double)m);
+		}
+	}
     
     	/**Осуществляет преобразование из класса в класс
 	* @param <T> итоговый класс
@@ -152,5 +170,18 @@ public class tools {
             }
         }
         return builder.toString();
+    }
+    /**Ищет самый старый файл в заданном месте
+     * @param where где искать
+     * @param filter функция фильтраци файлов. Должна вернуть true для подходящих файлов
+     * @return самый старый файл в заданном месте или null
+     */
+    public static java.io.File findOldest(java.io.File where, java.util.function.Function<java.io.File, Boolean> filter){
+        java.io.File old = null;
+        for(var file : where.listFiles()){
+            if(filter.apply(file) && (old == null || old.lastModified() <= file.lastModified()) )
+                old = file;
+        }
+        return old;
     }
 }

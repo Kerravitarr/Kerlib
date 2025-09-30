@@ -96,6 +96,30 @@ public class tools {
 		an = d - angl;
 		g.drawLine(kerlib.tools.round(x0), kerlib.tools.round(y0), kerlib.tools.round(lenght * Math.cos(an) + x0), kerlib.tools.round(lenght * Math.sin(an) + y0));
 	}
+    /**
+	 * Рисует заполненную стрелку
+	 * @param g
+	 * @param x0 - положение
+	 * @param y0
+	 * @param d - направление, в радианах
+	 * @param lenght - длина усов
+	 * @param angl - угол между стрелками, в радианах
+	 */
+	public static void fillarrow(Graphics g, double x0, double y0, double d, double lenght, double angl) {
+        var cos1 = Math.cos(d + angl);
+        var sin1 = Math.sin(d + angl);
+        var cos2 = Math.cos(d - angl);
+        var sin2 = Math.sin(d - angl);
+        g.fillPolygon(new int[]{
+            kerlib.tools.round(x0),
+            kerlib.tools.round(lenght * cos1 + x0),
+            kerlib.tools.round(lenght * cos2 + x0)
+        }, new int[]{
+            kerlib.tools.round(y0),
+            kerlib.tools.round(lenght * sin1 + y0),
+            kerlib.tools.round(lenght * sin2 + y0)
+        }, 3);
+	}
 
 	/**Рисует текст на экране
 	 * @param g холст
