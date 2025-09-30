@@ -43,11 +43,11 @@ public class Gravitation<T> {
         protected boolean isFix(){return false;}
         
         ///Местоположение узла
-        private java.awt.Point.Double center = new java.awt.Point.Double(Math.random()*2 - 1, Math.random()*2 - 1);
-        ///Текущая скорость узла
-        private java.awt.Point.Double speed = new java.awt.Point.Double(0, 0);
+        private final java.awt.Point.Double center = new java.awt.Point.Double(Math.random()*2 - 1, Math.random()*2 - 1);
         ///Сила, действующая на узел
-        private java.awt.Point.Double forse = new java.awt.Point.Double(0, 0);
+        public final java.awt.Point.Double forse = new java.awt.Point.Double(0, 0);
+        ///Сила для  узла на прошлом ходе
+        private final java.awt.Point.Double preforse = new java.awt.Point.Double(forse.x, forse.y);
         ///Гравитация, в которой мы вращаемся
         private Gravitation g;
     }
@@ -62,13 +62,13 @@ public class Gravitation<T> {
     ///Все узлы, с которыми мы работаем. Сылка на реальный массив
     private Collection<T> nodes;
     ///Температура, нужная, чтобы граф всегда немного "дышал". Он так лучше находит минимум
-    private double floatTmp = 0;
-    ///Минимальная и максимальная гипотинузы на прошлом шаге моделирования
-    private double minHyp = 0;
-    ///Минимальная и максимальная гипотинузы на прошлом шаге моделирования
-    private double maxHyp = 0;
+    private double floatTmp = 0.01;
     ///Отношение ширины экрана к высоте. W/H
     private double w_h = 1;
+    ///Корень из средне квадратического значения силы перемеещения
+    private double avrforse = 0;
+    ///Минимальная скорость перемещения узлов
+    private double min_v = 0.001;
 
     ///Создать обработчик гравитацаа
     /// @param transformX Функция получения из относительных координат - абсолютные
@@ -103,6 +103,7 @@ public class Gravitation<T> {
     ///@param height высота мира
     public void set(double width, double height){
         w_h = width / height;
+        min_v = 2 / Math.max(width, height);
     }
     ///Сохранить функции преобразования для мира
     public void set(java.util.function.Function<Double, Double> transformX, java.util.function.Function<Double, Double> transformY){
@@ -119,12 +120,14 @@ public class Gravitation<T> {
     public void init(){
         set(nodes);
         var ehyp = 0d;
+        double preehyp;
         while(true){
             var h = gravitation();
-            if(ehyp == 0) ehyp = h;
+            if(ehyp == 0) ehyp = Math.max(h, 100); //100 - чтобы маленькие флуктуации тоже обновились
             else {
+                preehyp = ehyp;
                 ehyp = ehyp *(1 - 0.01) + h * 0.01;
-                if(h == 0 || h - ehyp >= 0.0001 ) {
+                if(h == 0 || preehyp == ehyp || ehyp <= h ) {
                     break;
                 }
             }
@@ -146,6 +149,8 @@ public class Gravitation<T> {
             for (var i = 0; main.hasNext();i++) {
                 var first = tp.apply(main.next());
                 first.g = this;
+                first.preforse.x = first.forse.x;
+                first.preforse.y = first.forse.y;
                 first.forse.x = first.forse.y = 0;
                 var secondi = nodes.iterator();
                 for (var j = 0; secondi.hasNext();j++) {
@@ -154,9 +159,7 @@ public class Gravitation<T> {
                     var dist = sub(first.center,second.center);
                     var hypotenuse = Math.hypot(dist.x, dist.y);
                     if(hypotenuse == 0) continue;
-                    dist.x /= hypotenuse;
-                    dist.y /= hypotenuse;
-                    var fr = fr(hypotenuse, k);
+                    var fr = fr(hypotenuse, k) / hypotenuse; //Делим на hypotenuse, чтобы нормализовать вектор dist
                     first.forse.x += dist.x * fr;
                     first.forse.y += dist.y * fr;
                 }
@@ -169,39 +172,37 @@ public class Gravitation<T> {
                 var dist = sub(first.center,second.center);
                 var hypotenuse = Math.hypot(dist.x, dist.y);
                 if(hypotenuse == 0) continue;
-                dist.x /= hypotenuse;
-                dist.y /= hypotenuse;
-                var fa = fa(hypotenuse, k);
+                var fa = fa(hypotenuse, k) / hypotenuse; //Делим на hypotenuse, чтобы нормализовать вектор dist
                 first.forse.x -= dist.x * fa;
                 first.forse.y -= dist.y * fa;
                 second.forse.x += dist.x * fa;
                 second.forse.y += dist.y * fa;
             }
         }
-        floatTmp = kerlib.tools.betwin(0, floatTmp + (Math.random() - 0.5) * (maxHyp - minHyp), Math.min(maxHyp, 0.01));
+        floatTmp = floatTmp * 0.9 + kerlib.tools.betwin(min_v,avrforse,0.01) * 0.1;
+        //System.out.println(String.format("%.05f - %.05f", avrforse,floatTmp));
         var maxHypotenuse = 0.0;
-        var minHypotenuse = Double.MAX_VALUE;
+        avrforse = 0;
         for (var o : nodes) {
             final var first = tp.apply(o);
             var hypotenuse = Math.hypot(first.forse.x, first.forse.y);
-            if(!first.isFix() && Math.abs(hypotenuse) > 0.01){
+            if(!first.isFix() && Math.abs(hypotenuse) > 0){
                 maxHypotenuse = Math.max(maxHypotenuse, hypotenuse);
-                minHypotenuse = Math.min(minHypotenuse, hypotenuse);
-                first.forse.x /= hypotenuse;
-                first.forse.y /= hypotenuse;
-                first.move(first.forse.x*Math.min(hypotenuse, floatTmp), first.forse.y*Math.min(hypotenuse, floatTmp));
+                var step = Math.min(hypotenuse, floatTmp) / hypotenuse;
+                var dx = first.forse.x*step;
+                var dy = first.forse.y*step;
                 if(w_h < 1){
-                    first.center.x = kerlib.tools.betwin(-w_h, first.center.x, w_h);
-                    first.center.y = kerlib.tools.betwin(-1, first.center.y, 1);
+                    first.move(kerlib.tools.betwin(-w_h, first.getCX()+dx, w_h)-first.getCX(), kerlib.tools.betwin(-1, first.getCY()+dy, 1) - first.getCY());
                 } else {
-                    first.center.x = kerlib.tools.betwin(-1, first.center.x, 1);
-                    first.center.y = kerlib.tools.betwin(-1/w_h, first.center.y, 1/w_h);
+                    first.move(kerlib.tools.betwin(-1, first.getCX()+dx, 1)-first.getCX(), kerlib.tools.betwin(-1/w_h, first.getCY()+dy, 1/w_h) - first.getCY());
                 }
+                //Используем векторное произведение. Чтобы два разнонаправленных или сонаправленных вектора давали 0
+                avrforse += Math.pow((first.preforse.x * first.forse.y - first.preforse.y * first.forse.x),2);
                 first.update();
             }
         }
-        minHyp = minHypotenuse;
-        return maxHyp = maxHypotenuse;
+        avrforse = (avrforse) / nodes.size();
+        return maxHypotenuse;
     }
     ///Вычисляет силу отталкивания между двумя узлами
     ///@param dist расстояние между двумя узлаими
