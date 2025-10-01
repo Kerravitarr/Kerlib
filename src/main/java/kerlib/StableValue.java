@@ -10,13 +10,21 @@ package kerlib;
  * @author Kerravitarr (github.com/Kerravitarr)
  */
 public class StableValue<T> {
-    ///Значение уже сохранялось?
-    private boolean isSet = false;
     
-    public static <T> StableValue<T> supplier(java.util.function.Supplier<T> getter){
-        
-    }
-    public T get(){
-        
+    public static <T> java.util.function.Supplier<T> supplier(java.util.function.Supplier<T> getter){
+        return new java.util.function.Supplier() {
+            ///Значение уже сохранялось?
+            private boolean isSet = false;
+            ///Возвращаемое значение
+            private T ret = null;
+            @Override
+            public Object get() {
+                if(!isSet){
+                    ret = getter.get();
+                    isSet = true;
+                }
+                return ret;
+            }
+        };
     }
 }
