@@ -48,6 +48,10 @@ public class Gravitation<T> {
         public final java.awt.Point.Double forse = new java.awt.Point.Double(0, 0);
         ///Сила для  узла на прошлом ходе
         private final java.awt.Point.Double preforse = new java.awt.Point.Double(forse.x, forse.y);
+        ///Гипотинуза (длина) вектора preforse
+        private double prehyp = Math.hypot(preforse.x, preforse.y);
+        ///Максимальная сила, доступная узлу. Специальный параметр, нужный для симулирования скорости. Чтобы убить осциляцию
+        private double maxForse = 0;
         ///Гравитация, в которой мы вращаемся
         private Gravitation g;
     }
@@ -65,10 +69,10 @@ public class Gravitation<T> {
     private double floatTmp = 0.01;
     ///Отношение ширины экрана к высоте. W/H
     private double w_h = 1;
-    ///Корень из средне квадратического значения силы перемеещения
-    private double avrforse = 0;
     ///Минимальная скорость перемещения узлов
     private double min_v = 0.001;
+    ///Коэффициент экспоненциальной прогрессии
+    private static final double EXP_K = 0.9;
 
     ///Создать обработчик гравитацаа
     /// @param transformX Функция получения из относительных координат - абсолютные
@@ -103,7 +107,8 @@ public class Gravitation<T> {
     ///@param height высота мира
     public void set(double width, double height){
         w_h = width / height;
-        min_v = 2 / Math.max(width, height);
+        ///Скорость около 10 пикселей в кадр
+        min_v = 10 / Math.max(width, height);
     }
     ///Сохранить функции преобразования для мира
     public void set(java.util.function.Function<Double, Double> transformX, java.util.function.Function<Double, Double> transformY){
@@ -149,8 +154,6 @@ public class Gravitation<T> {
             for (var i = 0; main.hasNext();i++) {
                 var first = tp.apply(main.next());
                 first.g = this;
-                first.preforse.x = first.forse.x;
-                first.preforse.y = first.forse.y;
                 first.forse.x = first.forse.y = 0;
                 var secondi = nodes.iterator();
                 for (var j = 0; secondi.hasNext();j++) {
@@ -179,29 +182,45 @@ public class Gravitation<T> {
                 second.forse.y += dist.y * fa;
             }
         }
-        floatTmp = floatTmp * 0.9 + kerlib.tools.betwin(min_v,avrforse,0.01) * 0.1;
-        //System.out.println(String.format("%.05f - %.05f", avrforse,floatTmp));
+        floatTmp = floatTmp * EXP_K + min_v * (1-EXP_K);
         var maxHypotenuse = 0.0;
-        avrforse = 0;
         for (var o : nodes) {
             final var first = tp.apply(o);
             var hypotenuse = Math.hypot(first.forse.x, first.forse.y);
             if(!first.isFix() && Math.abs(hypotenuse) > 0){
                 maxHypotenuse = Math.max(maxHypotenuse, hypotenuse);
-                var step = Math.min(hypotenuse, floatTmp) / hypotenuse;
-                var dx = first.forse.x*step;
-                var dy = first.forse.y*step;
+                var preforse = first.preforse;
+                var forse = first.forse;
+                var tarStep = Math.min(hypotenuse, floatTmp);
+                var step = Math.min(first.maxForse, tarStep); //Ограничение максимальной длины вектора
+                var isOscil = false;
+                if(first.prehyp != 0){
+                    var mul_hyp = hypotenuse*first.prehyp;
+                    if((preforse.x*forse.x + preforse.y*forse.y)/(mul_hyp) < 0){
+                        //У нас два вектора направлены в противоположную сторону. Между ними угол больше 90 градусов (косинус меньше 0)
+                        //Тогда мы уменьшаем итоговый шаг на велечину синуса угла между ними.
+                        //Так мы полностью избавимся от осциляции
+                        var sin =  (preforse.x * forse.y - preforse.y * forse.x) / mul_hyp;
+                        first.maxForse = first.maxForse * EXP_K + step * Math.abs(sin) * (1-EXP_K);
+                        isOscil = true;
+                    }
+                }
+                if(!isOscil)
+                    first.maxForse = first.maxForse * EXP_K + tarStep * (1-EXP_K);
+                preforse.x = forse.x;
+                preforse.y = forse.y;
+                first.prehyp = hypotenuse;
+                step /= hypotenuse; //Для нормализации вектора
+                var dx = forse.x*step;
+                var dy = forse.y*step;
                 if(w_h < 1){
                     first.move(kerlib.tools.betwin(-w_h, first.getCX()+dx, w_h)-first.getCX(), kerlib.tools.betwin(-1, first.getCY()+dy, 1) - first.getCY());
                 } else {
                     first.move(kerlib.tools.betwin(-1, first.getCX()+dx, 1)-first.getCX(), kerlib.tools.betwin(-1/w_h, first.getCY()+dy, 1/w_h) - first.getCY());
                 }
-                //Используем векторное произведение. Чтобы два разнонаправленных или сонаправленных вектора давали 0
-                avrforse += Math.pow((first.preforse.x * first.forse.y - first.preforse.y * first.forse.x),2);
                 first.update();
             }
         }
-        avrforse = (avrforse) / nodes.size();
         return maxHypotenuse;
     }
     ///Вычисляет силу отталкивания между двумя узлами
