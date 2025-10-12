@@ -7,8 +7,7 @@ public class AxisDate extends Axis<Date>{
         super(name, unit);
     }
     @Override
-    double transform(Date v) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'transform'");
+    protected double transformLocal(Date v) {
+        return v.getTime();
     }    
 }

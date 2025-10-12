@@ -97,12 +97,22 @@ public class ChartPanel extends javax.swing.JPanel implements EventListener {
 		var maxX = (double)getWidth();
 		var minY = 10d;
 		var maxY = (double)getHeight();
-		final var of = g.getFont();
+		///Этап рисования графика I - отрисовка осей
+		{
+			/*for(var y : Y){
+				if(!y.isNeedSignature || y.isEmpty()) continue;
+				final var wt = Math.max(tools.getTextWidth(nf, y.pname),tools.getTextWidth(smalF, y.unit));
+				final var wn = Math.max(tools.getTextWidth(nf, y.format.apply(y.maximum)),tools.getTextWidth(nf, y.format.apply(y.minimum)));
+				final var wmax = Math.max(wt, wn) + 5; //5 пикселя для разделения
+				minX += wmax;
+			}*/
+		}
+		/*final var of = g.getFont();
 		final var nf = of.deriveFont(12f);
 		final var smalF = of.deriveFont(10f);
 		final var os = g.getStroke();
 		final var oc = g.getColor();
-		g.setFont(nf);
+		g.setFont(nf);*/
 		/*{
 			var x = 0;
 			final var th = tools.getTextHeight(nf, "ВЫСОТА ТЕКСТА") * 1.01;

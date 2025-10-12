@@ -52,8 +52,8 @@ public class Graph<T,XT,YT> {
     /** @param o новый объект графика*/
     public void add(T o) {
         objects.add(o);
-        var x = X.transform(toX.apply(o));
-        var y = Y.transform(toY.apply(o));
+        var x = X.transformLocal(toX.apply(o));
+        var y = Y.transformLocal(toY.apply(o));
         points.add(new java.awt.geom.Point2D.Double(x, y));
         fireChangeEvent();
     }

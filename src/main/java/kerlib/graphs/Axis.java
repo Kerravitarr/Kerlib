@@ -18,12 +18,16 @@ public abstract class Axis<T> {
     private boolean isAutoresizeMin = true;
     /**Нужно автоматически расширять ось по максимуму?*/
     private boolean isAutoresizeMax = true;
+
     /**Макисмальное значение*/
-    double maximum;
+    protected double maximum;
+    ///Максимальное значение, верхняя граница оси
+    public double maximum() {return maximum;}
     /**Минимальное значение*/
-    double minimum;
-    /**Форматирование чисел*/
-    java.util.function.Function<Number, String> format;
+    protected double minimum;
+    ///Минимальное значение, нижняя граница оси
+    public double minimum() {return minimum;}
+
     /**Масштаб линии в текущий момент времени, пк/единицу*/
     double scale = 1;
     /**Нулевой пиксель на экране*/
@@ -35,28 +39,20 @@ public abstract class Axis<T> {
     Axis(String n, String u) {
         name = n;
         unit = u;
-        setFormat(new java.text.DecimalFormat());
         reset();
     }
-    abstract double transform(T v);
-
-    /**Сохраняет минимальное значение оси
-     * @param min
-     */
-    public void setMin(Number min) {
-        add(min);
-        minimum = min.doubleValue();
-        setMinAutoresize(false);
+    ///Преобразует значение в число. Так как график строится только по числам!
+    /// @param v объект, с которым работает ось
+    /// @return значение в некоторых единицах
+    double transform(T v){
+        var val = transformLocal(v);
+        add(val);
+        return val;
     }
-
-    /**Сохраняет максимальное значение оси и отменяет авторасширение в эту сторону
-     * @param max
-     */
-    public void setMax(Number max) {
-        add(max);
-        maximum = max.doubleValue();
-        setMaxAutoresize(false);
-    }
+    ///Преобразует значение в число. Так как график строится только по числам!
+    /// @param v объект, с которым работает ось
+    /// @return значение в некоторых единицах
+    protected abstract double transformLocal(T v);
 
     /** @param min нужно авторасширение по минимуму?*/
     public void setMinAutoresize(boolean min) {
@@ -75,26 +71,6 @@ public abstract class Axis<T> {
     public void setAutoresize(boolean min, boolean max) {
         isAutoresizeMin = min;
         isAutoresizeMax = max;
-    }
-
-    /** @param decimalFormatPattern формат отображения чисел оси*/
-    public void setFormat(String decimalFormatPattern) {
-        setFormat(new java.text.DecimalFormat(decimalFormatPattern));
-    }
-
-    /** @param decimalFormatPattern формат отображения чисел оси*/
-    public void setFormat(java.text.DecimalFormat decimalFormatPattern) {
-        java.text.DecimalFormat dformat = decimalFormatPattern;
-        /*final var formatSymbols = new java.text.DecimalFormatSymbols(getLocale());
-        formatSymbols.setDecimalSeparator('.');
-        formatSymbols.setGroupingSeparator(' ');
-        dformat.setDecimalFormatSymbols(formatSymbols);*/
-        format = v -> dformat.format(v);
-    }
-
-    /** @param f функция преобразования числа в его текстовое описание*/
-    public void setFormat(java.util.function.Function<Number, String> f) {
-        format = f;
     }
 
     /** @param newValue очередное значение для этой оси*/
@@ -123,40 +99,6 @@ public abstract class Axis<T> {
                 maximum = minimum;
             }
         }
-    }
-
-    /** Преобразует значение
-     * @param v значение в единицах оси
-     * @return значение в пикселях
-     */
-    double toPx(double v) {
-        if (p0 > 0) {
-            return p0 + (v - minimum) * scale;
-        } else {
-            return -p0 - (v - minimum) * scale;
-        }
-    }
-
-    /** Преобразует значение
-     * @param v значение в пикселях
-     * @return значение в единицах оси
-     */
-    double toVal(double v) {
-        if (p0 > 0) {
-            return (v - p0) / scale + minimum;
-        } else {
-            return (-v - p0) / scale + minimum;
-        }
-    }
-
-    /** @return true, если ось ещё ни одного значения не получила*/
-    boolean isEmpty() {
-        return minimum == Double.MAX_VALUE && maximum == -Double.MAX_VALUE;
-    }
-
-    @Override
-    public String toString() {
-        return String.format("%s%s;%s%s,%s%s", isAutoresizeMin ? "<-" : "[", format.apply(minimum), format.apply(maximum), isAutoresizeMax ? "->" : "]", name, unit);
     }
 
 }
