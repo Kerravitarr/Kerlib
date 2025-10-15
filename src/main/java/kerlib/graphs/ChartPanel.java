@@ -11,6 +11,8 @@ import java.awt.Graphics2D;
 import java.awt.LayoutManager;
 import java.awt.Point;
 import java.awt.Stroke;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
@@ -23,11 +25,65 @@ import javax.swing.JToolTip;
 import javax.swing.Popup;
 import javax.swing.PopupFactory;
 import kerlib.draw.tools;
+import kerlib.draw.tools.alignmentX;
+import kerlib.draw.tools.alignmentY;
+import kerlib.graphs.Graph.GraphUpdateEvent;
 
 /**Панель графика. На нём будет всё рисоваться
  * @author Kerravitarr
  */
-public class ChartPanel extends javax.swing.JPanel implements EventListener {
+public class ChartPanel extends javax.swing.JPanel implements EventListener, Graph.GraphChangeListener {
+    /**
+     * @param args the command line arguments
+     */
+    public static void main(String args[]) {
+        try {
+            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(info.getName())) {
+                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                }
+            }
+        } catch (Exception ex) {
+            java.util.logging.Logger.getLogger(ChartPanel.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        }
+		
+        /* Create and display the form */
+        java.awt.EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                var dialg = new javax.swing.JDialog(new javax.swing.JFrame(), "ТЕСТ", true);
+                dialg.getContentPane().setLayout(new javax.swing.BoxLayout(dialg.getContentPane(), javax.swing.BoxLayout.Y_AXIS));
+                var panel = new ChartPanel();
+
+				        var X = new AxisNumber<>("Счёт");
+				        var Y = new AxisNumber<>("Число");
+				        record V(double x, double y){}
+				        var graph = new Graph<V,Number,Number>("Тест",X,Y,r -> r.x, r -> r.y);
+					
+                        panel.addMouseListener(new MouseAdapter(){
+							double v = 0d;
+                            double i = (Math.random() * 100);
+                            @Override
+                            public void mouseClicked(MouseEvent e) {
+								graph.add(new V(i++, v+=Math.random()));
+                            }
+                        });
+
+				        panel.addGraph(graph);
+
+                var scrollPanel = new javax.swing.JScrollPane(panel);
+                dialg.getContentPane().add(scrollPanel);
+
+                dialg.pack();
+                var pos = java.awt.MouseInfo.getPointerInfo().getLocation();
+                var screenSize = java.awt.Toolkit.getDefaultToolkit().getScreenSize();
+                var height = Math.min(dialg.getPreferredSize().height, screenSize.height / 2);
+                var width = Math.min(Math.max(400,dialg.getPreferredSize().width), screenSize.width / 2);
+                dialg.setBounds(Math.min(pos.x, screenSize.width * 4 / 5 - width), Math.min(pos.y, screenSize.height * 4 / 5 - height), width, height);
+                dialg.setVisible(true);
+          }
+      });
+  }
 	///Все вертикальные оси
 	private List<Axis> Y = new ArrayList<>();
 	///Все горизонтальные оси
@@ -97,21 +153,66 @@ public class ChartPanel extends javax.swing.JPanel implements EventListener {
 		var maxX = (double)getWidth();
 		var minY = 10d;
 		var maxY = (double)getHeight();
+		var of = g.getFont();
+		var os = g.getStroke();
+		var oc = g.getColor();
+		var smalF = of.deriveFont(10f);
+		var g3 = new kerlib.draw.UsableGraphics(g);
 		///Этап рисования графика I - отрисовка осей
 		{
-			/*for(var y : Y){
-				if(!y.isNeedSignature || y.isEmpty()) continue;
-				final var wt = Math.max(tools.getTextWidth(nf, y.pname),tools.getTextWidth(smalF, y.unit));
-				final var wn = Math.max(tools.getTextWidth(nf, y.format.apply(y.maximum)),tools.getTextWidth(nf, y.format.apply(y.minimum)));
-				final var wmax = Math.max(wt, wn) + 5; //5 пикселя для разделения
-				minX += wmax;
-			}*/
+			var defH = tools.getTextHeight(of, "А");
+			var betweenAxis = defH/2; //Запас между двумя соседними осями
+			//Мы можем сразу сдвинуть maxY, оставив там запас под подписи осей X
+			maxY -= (X.size()/2+X.size()%2) * (defH + betweenAxis);
+			//А так же сдвинуь minX, на максимальную велечину мезду запасом под X и подписями под Y
+			minY += Math.max(((X.size()/2) * (defH + betweenAxis)), Y.stream().mapToInt(y -> (!y.isNeedSignature ? 0 : tools.getTextWidth(g, y.name) + tools.getTextWidth(smalF, y.unit)) + betweenAxis).sum());
+			var lengthY = maxY - minY;
+			for(var i = 0 ; i < Y.size(); i++){
+				//Нужно узнать, сколько оси нужно пространства...
+				//Вертикальная ось должна содержать подписи с цифрами
+				//Ну и размерность, которая пишется сверху
+				var y = Y.get(i);
+				var maxW = 0;
+				if(y.isNeedSignature){
+					//Подписи будут в два ряда, так что находим наибольшую из ширин
+					maxW = Math.max(tools.getTextWidth(g, y.name),tools.getTextWidth(smalF, y.unit));
+				}
+				if(!y.isEmpty()){
+					maxW = Math.max(maxW, y.maxWidth(g, (int)lengthY, defH));
+				}
+				if(i % 2 == 0){
+					var xl = minX + maxW + betweenAxis / 2;
+					g3.drawLine(xl, minY, xl, maxY);
+					if(y.isNeedSignature){
+						var ty = minY-betweenAxis;
+						if(!y.unit.isBlank()){
+							var size = kerlib.draw.tools.drawString(g, xl, ty,10, y.unit, alignmentX.right, alignmentY.top);
+							ty -= size.getHeight();
+						}
+						g3.string(xl, ty, y.name, alignmentX.right, alignmentY.top);
+					}
+					if(!y.isEmpty())
+						y.draw(minX + maxW,minY, true);
+					minX += maxW + betweenAxis;
+				} else {
+					var xl = maxX - maxW - betweenAxis / 2;
+					g3.drawLine(xl, minY, xl, maxY);
+					if(y.isNeedSignature){
+						var ty = minY-betweenAxis;
+						if(!y.unit.isBlank()){
+							var size = kerlib.draw.tools.drawString(g, xl, ty,10, y.unit, alignmentX.left, alignmentY.top);
+							ty -= size.getHeight();
+						}
+						g3.string(xl, ty, y.name, alignmentX.left, alignmentY.top);
+					}
+					if(!y.isEmpty())
+						y.draw(maxX - maxW,minY, false);
+					maxX -= maxW + betweenAxis;
+				}
+			}
 		}
-		/*final var of = g.getFont();
-		final var nf = of.deriveFont(12f);
+		/*final var nf = of.deriveFont(12f);
 		final var smalF = of.deriveFont(10f);
-		final var os = g.getStroke();
-		final var oc = g.getColor();
 		g.setFont(nf);*/
 		/*{
 			var x = 0;
@@ -295,7 +396,7 @@ public class ChartPanel extends javax.swing.JPanel implements EventListener {
         final var p = evt.getPoint();
 		final var text = new StringBuilder();
 		for(kerlib.graphs.Axis y : Y){
-			if(y.isEmpty()) continue;
+			/*if(y.isEmpty()) continue;
 			if(!text.isEmpty()) text.append("\n");
 			text.append(y.name);
 			text.append(": ");
@@ -303,7 +404,7 @@ public class ChartPanel extends javax.swing.JPanel implements EventListener {
 			if(!y.unit.isEmpty()){
 				text.append(", ");
 				text.append(y.unit);
-			}
+			}*/
 		}
 		if(text.isEmpty()) return;
 		text.append("\n");
@@ -316,6 +417,12 @@ public class ChartPanel extends javax.swing.JPanel implements EventListener {
 		}*/
 		showPopup(text.toString());
     }//GEN-LAST:event_formMouseMoved
+
+	@Override
+	public void graphChanged(GraphUpdateEvent event) {
+		revalidate();
+		repaint();
+	}
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

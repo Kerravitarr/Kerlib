@@ -5,6 +5,11 @@
 
 package kerlib.graphs;
 
+import java.awt.Graphics2D;
+
+import kerlib.draw.tools.alignmentX;
+import kerlib.draw.tools.alignmentY;
+
 /**Ось графикa*/
 public abstract class Axis<T> {
     ///Название оси
@@ -15,9 +20,9 @@ public abstract class Axis<T> {
     /**Нужна ли подпись оси сбоку?*/
     boolean isNeedSignature = true;
     /**Нужно автоматически расширять ось по минимуму?*/
-    private boolean isAutoresizeMin = true;
+    protected boolean isAutoresizeMin = true;
     /**Нужно автоматически расширять ось по максимуму?*/
-    private boolean isAutoresizeMax = true;
+    protected boolean isAutoresizeMax = true;
 
     /**Макисмальное значение*/
     protected double maximum;
@@ -32,6 +37,11 @@ public abstract class Axis<T> {
     double scale = 1;
     /**Нулевой пиксель на экране*/
     double p0 = 1;
+
+    ///Ось пуста? На ней не задано минимумов и максимумов
+    private boolean isEmpty = true;
+    ///Объект, который будет выводить ось на печать
+    private Printer printer;
 
     Axis() {
         this("", "");
@@ -53,6 +63,7 @@ public abstract class Axis<T> {
     /// @param v объект, с которым работает ось
     /// @return значение в некоторых единицах
     protected abstract double transformLocal(T v);
+    protected abstract int maxWidth(Graphics2D g2d, int width, int charWidth, Printer printer);
 
     /** @param min нужно авторасширение по минимуму?*/
     public void setMinAutoresize(boolean min) {
@@ -81,6 +92,7 @@ public abstract class Axis<T> {
         if (isAutoresizeMax) {
             maximum = Math.max(maximum, newValue.doubleValue());
         }
+        isEmpty = false;
     }
 
     /**Сбрасывает ограничения оси*/
@@ -99,6 +111,49 @@ public abstract class Axis<T> {
                 maximum = minimum;
             }
         }
+        isEmpty = isAutoresizeMax || isAutoresizeMin;
+    }
+    ///@return true, если для оси не заданы минимальное и максимальное значения
+    public boolean isEmpty() {return isEmpty;}
+
+    int maxWidth(Graphics2D g2d, int width, int charWidth){
+        return maxWidth(g2d, width, charWidth, printer = new Printer(g2d, true));
+    }
+    void draw(double x, double y, boolean isLeft){
+        if (printer != null){
+            printer.draw(x,y, isLeft);
+        }
     }
 
+    protected class Printer {
+        ///Холст, на котором рисуем
+        private final Graphics2D g2d;
+        ///Смещение названий. Вправо или влево. В зависимости от типа оси
+        private alignmentX alX;
+        ///Текущий Х. К какому значению тяготеют значения
+        private double x;
+        ///Функция отрисовки
+        private java.util.function.Consumer<Double> drow;
+
+        public Printer(Graphics2D g2d, boolean isLeft) {
+            this.g2d = g2d;
+        }
+        public void set(java.util.function.Consumer<Double> c){
+            drow = c;
+        }
+        public void print(double y, String text){
+            this.print(y, text,alignmentY.top);
+        }        
+        public void print(double y,String text, alignmentY al){
+            kerlib.draw.tools.drawString(g2d, x,y, text, alX, alignmentY.center);
+        }
+
+        public void draw(double x, double y, boolean isLeft){
+            alX = isLeft ? alignmentX.right : alignmentX.left;
+            this.x = x;
+            if (drow != null){
+                drow.accept(y);
+            }
+        }
+    }
 }

@@ -52,8 +52,8 @@ public class Graph<T,XT,YT> {
     /** @param o новый объект графика*/
     public void add(T o) {
         objects.add(o);
-        var x = X.transformLocal(toX.apply(o));
-        var y = Y.transformLocal(toY.apply(o));
+        var x = X.transform(toX.apply(o));
+        var y = Y.transform(toY.apply(o));
         points.add(new java.awt.geom.Point2D.Double(x, y));
         fireChangeEvent();
     }
@@ -97,11 +97,20 @@ public class Graph<T,XT,YT> {
      */
     protected void fireChangeEvent() {
         var listeners = this.listenerList.getListenerList();
+        var event = new GraphUpdateEvent();
         for (var i = listeners.length - 2; i >= 0; i -= 2) {
-            /*if (listeners[i] == AxisChangeListener.class) {
-                ((AxisChangeListener) listeners[i + 1]).axisChanged(event);
-            }*/
+            if (GraphChangeListener.class.isAssignableFrom((Class<?>)listeners[i])) {
+                ((GraphChangeListener) listeners[i + 1]).graphChanged(event);
+            }
         }
+    }
+
+
+    static interface GraphChangeListener {
+        public void graphChanged(GraphUpdateEvent event);
+    }
+    static class GraphUpdateEvent {
+
     }
 
 }

@@ -6,6 +6,9 @@ package kerlib.draw;
 
 import java.awt.Graphics;
 
+import kerlib.draw.tools.alignmentX;
+import kerlib.draw.tools.alignmentY;
+
 /**Мой собственный класс для графики
  * Добавляет к станадртной графике те элементы, которых мне очень не хватает
  * @author ilia
@@ -77,5 +80,9 @@ public class UsableGraphics {
     /// @return текущий объект
     public UsableGraphics drawLine(double x1, double y1, double x2, double y2){
         return drawLine(kerlib.tools.round(x1), kerlib.tools.round(y1), kerlib.tools.round(x2), kerlib.tools.round(y2));
+    }
+    public UsableGraphics string(double x, double y,String text, alignmentX alX, alignmentY alY){
+        kerlib.draw.tools.drawString(g, x, y, text, alX, alY);
+        return this;
     }
 }
