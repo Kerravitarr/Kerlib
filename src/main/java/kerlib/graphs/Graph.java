@@ -57,6 +57,15 @@ public class Graph<T,XT,YT> {
         points.add(new java.awt.geom.Point2D.Double(x, y));
         fireChangeEvent();
     }
+    /** @param x координата по оси
+     * @param y координата по оси*/
+    public void add(XT x, YT y) {
+        objects.add(null);
+        var xv = X.transform(x);
+        var yv = Y.transform(y);
+        points.add(new java.awt.geom.Point2D.Double(xv, yv));
+        fireChangeEvent();
+    }
     /**Очищает график от данных*/
     public void clear() {
         objects.clear();

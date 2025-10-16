@@ -52,12 +52,12 @@ public class AxisNumber<T extends Number> extends Axis<T>{
     }
     
     @Override
-    public int maxWidth(Graphics2D g2d, int width, int charWidth, Printer printer){
+    public int maxWidth(Graphics2D g2d, int height, int charWidth, Printer printer){
         if(maximum == minimum){
             var power = (int)Math.floor(Math.log10(maximum));
             var formatter = new DecimalFormat(getNumberFormat(power), SYMBOLS);
             var text = formatter.format(maximum);
-            printer.set((y0) -> printer.print(y0+width/2,text,alignmentY.center));
+            printer.setY((y0) -> printer.print(y0+height/2,text,alignmentY.center));
             return tools.getTextWidth(g2d, text);
         }
         var previous = 1;
@@ -66,7 +66,7 @@ public class AxisNumber<T extends Number> extends Axis<T>{
                 //Количество делений.
                 var count = (int) Math.floor(dig * Math.pow(10, ten)); 
                 //Всегда 2 в запасе, чтобы минимум и максимум вместить гарантированно
-                if(charWidth * (count + 2) > width){
+                if(charWidth * (count + 2) > height){
                     break main_loop;
                 } else {
                     previous = count;
@@ -78,7 +78,7 @@ public class AxisNumber<T extends Number> extends Axis<T>{
             var power = (int)Math.floor(Math.log10(val));
             var formatter = new DecimalFormat(getNumberFormat(power), SYMBOLS);
             var text = formatter.format(val);
-            printer.set((y0) -> printer.print(y0+width/2,text,alignmentY.center));
+            printer.setY((y0) -> printer.print(y0+height/2,text,alignmentY.center));
             return tools.getTextWidth(g2d, text);
         }
         //Теперь мы знаем, на сколько делений максимум мы можем поделить нашу ось
@@ -148,18 +148,114 @@ public class AxisNumber<T extends Number> extends Axis<T>{
             previosK = pc;
         }
         var idealTickInterval = n * Math.pow(10, k);
-        var min = minimum > 0 ? Math.ceil(minimum/idealTickInterval)*idealTickInterval : Math.floor(minimum/idealTickInterval)*idealTickInterval;
-        var max = maximum < 0 ? Math.ceil(maximum/idealTickInterval)*idealTickInterval : Math.floor(maximum/idealTickInterval)*idealTickInterval;
+        var min = roundMin(idealTickInterval);
+        var max = roundMax(idealTickInterval);
         var formatter = new DecimalFormat(getNumberFormat(k), SYMBOLS);
-        printer.set((y0) -> {
+        printer.setY((y0) -> {
             for(var i = min; i < max; i += idealTickInterval){
-                printer.print(y0+width-(i-minimum)*width/range,formatter.format(i));
+                printer.print(y0+height-(i-minimum)*height/range,formatter.format(i));
             }
         });
         return Math.max(tools.getTextWidth(g2d, formatter.format(min)),tools.getTextWidth(g2d, formatter.format(max)));
+    }    
+    public void printHorizontalTicks(Graphics2D g2d, int width, Printer printer){
+        if(maximum == minimum){
+            var power = (int)Math.floor(Math.log10(maximum));
+            var formatter = new DecimalFormat(getNumberFormat(power), SYMBOLS);
+            var text = formatter.format(maximum);
+            printer.setX((x0) -> printer.print(x0+width/2,text,alignmentX.center));
+            return;
+        }
+        var range = maximum - minimum;
+        //А вот тут сложнее искать интервал
+        //То есть был в виде n*10^k
+        var power = (int)Math.floor(Math.log10(range));
+        var previosK = power;
+        var n = 0;
+        var k = 0;
+        var calculateW = (java.util.function.BiFunction<Double,Integer,Double>)(interval,pw) -> {
+            var max = roundMax(interval);
+            var formatter = new DecimalFormat(getNumberFormat(pw), SYMBOLS);
+            var w = kerlib.draw.tools.getTextWidth(g2d, formatter.format(max));
+            return w * (range/interval);
+        };
+        WH: while (true) {
+            var base = Math.pow(10, power);
+            var bestNumber = 1;
+            var minError = Double.MAX_VALUE;
+            for (var multiplier : new int[]{1, 2, 5}) {
+                var tick = base * multiplier;
+                if (tick <= 0) continue;
+                var foundW = calculateW.apply(tick, power);
+                if(foundW <= width && foundW < minError){
+                    ///Мы прям влазим в ширину экрана
+                    minError = foundW;
+                    bestNumber = multiplier;
+                }
+            }
+            var pc = power;
+            switch (bestNumber) {
+                case 1 -> {
+                    if(previosK >= power)
+                       --power;
+                    else {
+                        var nb = Math.pow(10, power-1);
+                        var tick = nb * 5;
+                        var nextW = calculateW.apply(tick, power-1);
+                        if(tick > 0 && nextW <= width && nextW < minError){
+                            n = 5;
+                            k = power-1;
+                            break WH;
+                        } else {
+                            n = bestNumber;
+                            k = power;
+                            break WH;
+                        }
+                    }
+                }
+                case 2 -> {
+                    n = bestNumber;
+                    k = power;
+                    break WH;
+                }
+                case 5 -> {
+                    if(previosK <= power)
+                       ++power;
+                    else {
+                        var nb = Math.pow(10, power+1);
+                        var tick = nb * 1;
+                        var nextW = calculateW.apply(tick, power+1);
+                        if(tick > 0 && nextW <= width && nextW < minError){
+                            n = 1;
+                            k = power+1;
+                            break WH;
+                        } else {
+                            n = bestNumber;
+                            k = power;
+                            break WH;
+                        }
+                    }
+                }
+            }
+            previosK = pc;
+        }
+        var idealTickInterval = n * Math.pow(10, k);
+        var min = roundMin(idealTickInterval);
+        var max = roundMax(idealTickInterval);
+        var formatter = new DecimalFormat(getNumberFormat(k), SYMBOLS);
+        printer.setX((x0) -> {
+            for(var i = min; i < max; i += idealTickInterval){
+                printer.print(x0+width-(i-minimum)*width/range,formatter.format(i));
+            }
+        });
     }
-    public void printTicks(Graphics2D g2d, int width, int charWidth){
-
+    /**@return минимальное значение, которое будет отображено на оси при заданном интервале */
+    private double roundMin(double idealTickInterval){
+        return minimum > 0 ? Math.ceil(minimum/idealTickInterval)*idealTickInterval : Math.floor(minimum/idealTickInterval)*idealTickInterval;
+    }
+    /**@return максимальное значение, которое будет отображено на оси при заданном интервале */
+    private double roundMax(double idealTickInterval){
+        return maximum < 0 ? Math.ceil(maximum/idealTickInterval)*idealTickInterval : Math.floor(maximum/idealTickInterval)*idealTickInterval;
     }
     private static String getNumberFormat(int k) {
         if (k < 0) {

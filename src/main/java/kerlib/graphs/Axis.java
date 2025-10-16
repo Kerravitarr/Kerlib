@@ -119,9 +119,9 @@ public abstract class Axis<T> {
     int maxWidth(Graphics2D g2d, int width, int charWidth){
         return maxWidth(g2d, width, charWidth, printer = new Printer(g2d, true));
     }
-    void draw(double x, double y, boolean isLeft){
+    void draw(double x, double y,double yUnderLabel, boolean isLeft){
         if (printer != null){
-            printer.draw(x,y, isLeft);
+            printer.draw(x,y,yUnderLabel, isLeft);
         }
     }
 
@@ -132,24 +132,34 @@ public abstract class Axis<T> {
         private alignmentX alX;
         ///Текущий Х. К какому значению тяготеют значения
         private double x;
+        ///Верхняя граница Y, выше неё нельзя рисовать
+        private double maxY;
         ///Функция отрисовки
         private java.util.function.Consumer<Double> drow;
 
         public Printer(Graphics2D g2d, boolean isLeft) {
             this.g2d = g2d;
         }
-        public void set(java.util.function.Consumer<Double> c){
+        public void setY(java.util.function.Consumer<Double> c){
+            drow = c;
+        }
+        public void setX(java.util.function.Consumer<Double> c){
             drow = c;
         }
         public void print(double y, String text){
             this.print(y, text,alignmentY.top);
         }        
         public void print(double y,String text, alignmentY al){
-            kerlib.draw.tools.drawString(g2d, x,y, text, alX, alignmentY.center);
+            if(y > maxY)
+                kerlib.draw.tools.drawString(g2d, x,y, text, alX, al);
+        }
+        public void print(double y,String text, alignmentX al){
+            //kerlib.draw.tools.drawString(g2d, x,y, text, al, al);
         }
 
-        public void draw(double x, double y, boolean isLeft){
+        public void draw(double x, double y, double yUnderLabel, boolean isLeft){
             alX = isLeft ? alignmentX.right : alignmentX.left;
+            maxY = yUnderLabel;
             this.x = x;
             if (drow != null){
                 drow.accept(y);
