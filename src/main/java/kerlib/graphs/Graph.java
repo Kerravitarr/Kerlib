@@ -5,8 +5,6 @@
 
 package kerlib.graphs;
 
-import java.awt.Color;
-import java.awt.Stroke;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,26 +18,25 @@ public class Graph<T,XT,YT> {
     Axis<XT> X;
     ///Ось Y графика
     Axis<YT> Y;
-    ///Все наши точки графика
-    private final List<T> objects = new ArrayList<>();
     ///Все координаты графика
     private final List<java.awt.geom.Point2D> points = new ArrayList<>();
+    ///Все стили, которые надо применить для отображения графика
+    final List<GraphStyle> styles = new ArrayList<>();
+    private GraphPrinter printer;
 
-    /**Цвет графика*/
-    private Color color = Color.BLACK;
-    /**Форма графика*/
-    private Stroke stroke = null;
     /**Нужна ли подпись графика внизу?*/
     private boolean isNeedSignature = true;
+
     /**Функция превращения объекта в ординату X*/
     private final java.util.function.Function<T, XT> toX;
     /**Функция превращения объекта в ординату Y*/
     private final java.util.function.Function<T, YT> toY;
-    ///Панель, на которой рисуется этот график
-    private ChartPanel chart;
     ///Слушатели событий от этого графика
     private transient EventListenerList listenerList;
 
+    public Graph(String n, Axis<XT> x, Axis<YT> y) {
+        this(n, x, y, null,null);
+    }
     public Graph(String n, Axis<XT> x, Axis<YT> y, java.util.function.Function<T, XT> tox, java.util.function.Function<T, YT> toy) {
         name = n;
         X = x;
@@ -51,16 +48,11 @@ public class Graph<T,XT,YT> {
 
     /** @param o новый объект графика*/
     public void add(T o) {
-        objects.add(o);
-        var x = X.transform(toX.apply(o));
-        var y = Y.transform(toY.apply(o));
-        points.add(new java.awt.geom.Point2D.Double(x, y));
-        fireChangeEvent();
+        add(toX.apply(o), toY.apply(o));
     }
     /** @param x координата по оси
      * @param y координата по оси*/
     public void add(XT x, YT y) {
-        objects.add(null);
         var xv = X.transform(x);
         var yv = Y.transform(y);
         points.add(new java.awt.geom.Point2D.Double(xv, yv));
@@ -68,37 +60,31 @@ public class Graph<T,XT,YT> {
     }
     /**Очищает график от данных*/
     public void clear() {
-        objects.clear();
         points.clear();
         fireChangeEvent();
     }
 
-    /** @param c цвет графика*/
-    public void setColor(Color c) {
-        color = c;
-        fireChangeEvent();
-    }
-
-    /** @param s оформление графика*/
-    public void setStroke(Stroke s) {
-        stroke = s;
-        fireChangeEvent();
-    }
-
     /** @param isNeedSignature нужно подписывать график внизу?*/
-    public void setNeedSignature(boolean isNeedSignature) {
+    public Graph<T,XT,YT> setNeedSignature(boolean isNeedSignature) {
         this.isNeedSignature = isNeedSignature;
         fireChangeEvent();
+        return this;
     }
+    /// @return true, если график пустой
+    public boolean isEmpty() {return points.isEmpty();}
 
     java.awt.geom.Point2D get(int index) {
         return points.get(index);
     }
 
-    public void set(ChartPanel chartPanel) {
-        this.chart = chartPanel;
+    void set(ChartPanel chartPanel) {
         listenerList.add(ChartPanel.class, chartPanel);
         fireChangeEvent();
+    }
+
+    void draw(java.awt.Graphics2D g) {
+        if(printer == null) printer = new DottedSmoothMarkers();
+        printer.draw(g,points,X,Y);
     }
 
     /**
