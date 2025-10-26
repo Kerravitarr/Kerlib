@@ -12,6 +12,8 @@ import kerlib.draw.tools.alignmentY;
 public class AxisNumber<T extends Number> extends Axis<T>{
     ///Формат вывода чисел
     private final DecimalFormatSymbols SYMBOLS;
+    ///Коэффициенты округления чисел
+    private final static int[] TICK_STEP = new int[]{1, 2, 5};
     
     
     public AxisNumber(String name) {this(name, "");}
@@ -28,33 +30,13 @@ public class AxisNumber<T extends Number> extends Axis<T>{
     
     @Override
     public int maxWidth(Graphics2D g2d, int height,Printer printer){
-        if(maximum == minimum){
+        var charWidth = tools.getTextHeight(g2d, "А");
+        var previous = Math.floor(height / (charWidth*2));
+        if(maximum == minimum || previous <= 1){
             var power = (int)Math.floor(Math.log10(maximum == 0 ? 1 : maximum));
             var formatter = new DecimalFormat(getNumberFormat(power), SYMBOLS);
             var text = formatter.format(maximum);
-            printer.setY(() -> printer.tick(height/2d,text,alignmentY.center), v -> height/2d, (v) -> text);
-            return tools.getTextWidth(g2d, text);
-        }
-        var charWidth = tools.getTextHeight(g2d, "А");
-        var previous = 1;
-        main_loop:for(var ten = 0; ; ten++){
-            for(var dig = 1; dig <= 9; dig++){
-                //Количество делений.
-                var count = (int) Math.floor(dig * Math.pow(10, ten)); 
-                //Всегда 2 в запасе, чтобы минимум и максимум вместить гарантированно
-                if(charWidth * (count + 2) > height){
-                    break main_loop;
-                } else {
-                    previous = count;
-                }
-            }
-        }
-        if(previous == 1){
-            var val = (minimum + maximum) / 2;
-            var power = log10(val);
-            var formatter = new DecimalFormat(getNumberFormat(power), SYMBOLS);
-            var text = formatter.format(val);
-            printer.setY(() -> printer.tick(height/2,text,alignmentY.center), v -> height/2d, (v) -> text);
+            printer.setY(() -> printer.tick(height/2d,text,alignmentY.center), _ -> height/2d, _ -> text);
             return tools.getTextWidth(g2d, text);
         }
         //Теперь мы знаем, на сколько делений максимум мы можем поделить нашу ось
@@ -66,11 +48,11 @@ public class AxisNumber<T extends Number> extends Axis<T>{
         var previosK = power;
         var n = 0;
         var k = 0;
-        WH: while (true) {
+        while (true) {
             var base = Math.pow(10, power);
-            var bestNumber = 1;
+            var bestNumber = TICK_STEP[0];
             var minError = Double.MAX_VALUE;
-            for (var multiplier : new int[]{1, 2, 5}) {
+            for (var multiplier : TICK_STEP) {
                 var tick = base * multiplier;
                 if (tick <= 0) continue;
                 var error = Math.abs(tick - tickInterval);
@@ -80,46 +62,42 @@ public class AxisNumber<T extends Number> extends Axis<T>{
                 }
             }
             var pc = power;
-            switch (bestNumber) {
-                case 1 -> {
-                    if(previosK >= power)
-                       --power;
-                    else {
-                        var nb = Math.pow(10, power-1);
-                        var tick = nb * 5;
-                        if(tick > 0 && Math.abs(tick - tickInterval) < minError){
-                            n = 5;
-                            k = power-1;
-                            break WH;
-                        } else {
-                            n = bestNumber;
-                            k = power;
-                            break WH;
-                        }
-                    }
-                }
-                case 2 -> {
-                    n = bestNumber;
-                    k = power;
-                    break WH;
-                }
-                case 5 -> {
-                    if(previosK <= power)
-                       ++power;
-                    else {
-                        var nb = Math.pow(10, power+1);
-                        var tick = nb * 1;
-                        if(tick > 0 && Math.abs(tick - tickInterval) < minError){
-                            n = 1;
-                            k = power+1;
-                            break WH;
-                        } else {
-                            n = bestNumber;
-                            k = power;
-                            break WH;
-                        }
-                    }
-                }
+            if(bestNumber == TICK_STEP[0]){
+                if(previosK >= power)
+                    --power;
+                 else {
+                     var nb = Math.pow(10, power-1);
+                     var tick = nb * 5;
+                     if(tick > 0 && Math.abs(tick - tickInterval) < minError){
+                         n = 5;
+                         k = power-1;
+                         break;
+                     } else {
+                         n = bestNumber;
+                         k = power;
+                         break;
+                     }
+                 }
+            } else if(bestNumber == TICK_STEP[TICK_STEP.length - 1]){
+                if(previosK <= power)
+                    ++power;
+                 else {
+                     var nb = Math.pow(10, power+1);
+                     var tick = nb * 1;
+                     if(tick > 0 && Math.abs(tick - tickInterval) < minError){
+                         n = 1;
+                         k = power+1;
+                         break;
+                     } else {
+                         n = bestNumber;
+                         k = power;
+                         break;
+                     }
+                 }
+            } else {
+                n = bestNumber;
+                k = power;
+                break;
             }
             previosK = pc;
         }
@@ -163,11 +141,11 @@ public class AxisNumber<T extends Number> extends Axis<T>{
             if(maxWidth < w) return width; //Чтобы показать, что двигаться надо в эту сторону
             else return maxWidth;
         };
-        WH: while (true) {
+        while (true) {
             var base = Math.pow(10, power);
-            var bestNumber = 1;
+            var bestNumber = TICK_STEP[0];
             var minError = Double.MAX_VALUE;
-            for (var multiplier : new int[]{1, 2, 5}) {
+            for (var multiplier : TICK_STEP) {
                 var tick = base * multiplier;
                 if (tick <= 0) continue;
                 var fwidth = calculateW.apply(tick, power);
@@ -177,48 +155,44 @@ public class AxisNumber<T extends Number> extends Axis<T>{
                 }
             }
             var pc = power;
-            switch (bestNumber) {
-                case 1 -> {
-                    if(previosK >= power)
-                       --power;
-                    else {
-                        var nb = Math.pow(10, power-1);
-                        var tick = nb * 5;
-                        var nextW = calculateW.apply(tick, power-1);
-                        if(tick > 0 && nextW > 0 && nextW < minError){
-                            n = 5;
-                            k = power-1;
-                            break WH;
-                        } else {
-                            n = bestNumber;
-                            k = power;
-                            break WH;
-                        }
-                    }
-                }
-                case 2 -> {
-                    n = bestNumber;
-                    k = power;
-                    break WH;
-                }
-                case 5 -> {
-                    if(previosK <= power)
-                       ++power;
-                    else {
-                        var nb = Math.pow(10, power+1);
-                        var tick = nb * 1;
-                        var nextW = calculateW.apply(tick, power+1);
-                        if(tick > 0 && nextW > 0 && nextW < minError){
-                            n = 1;
-                            k = power+1;
-                            break WH;
-                        } else {
-                            n = bestNumber;
-                            k = power;
-                            break WH;
-                        }
-                    }
-                }
+            if(bestNumber == TICK_STEP[0]){
+                if(previosK >= power)
+                    --power;
+                 else {
+                     var nb = Math.pow(10, power-1);
+                     var tick = nb * 5;
+                     var nextW = calculateW.apply(tick, power-1);
+                     if(tick > 0 && nextW > 0 && nextW < minError){
+                         n = 5;
+                         k = power-1;
+                         break;
+                     } else {
+                         n = bestNumber;
+                         k = power;
+                         break;
+                     }
+                 }
+            }else if(bestNumber == TICK_STEP[TICK_STEP.length - 1]){
+                if(previosK <= power)
+                    ++power;
+                 else {
+                     var nb = Math.pow(10, power+1);
+                     var tick = nb * 1;
+                     var nextW = calculateW.apply(tick, power+1);
+                     if(tick > 0 && nextW > 0 && nextW < minError){
+                         n = 1;
+                         k = power+1;
+                         break;
+                     } else {
+                         n = bestNumber;
+                         k = power;
+                         break;
+                     }
+                 }
+            }else {
+                n = bestNumber;
+                k = power;
+                break;
             }
             previosK = pc;
         }

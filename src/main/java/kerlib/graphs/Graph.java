@@ -58,6 +58,18 @@ public class Graph<T,XT,YT> {
         points.add(new java.awt.geom.Point2D.Double(xv, yv));
         fireChangeEvent();
     }
+    ///Добавляет стили к текущему графику
+    ///@param add стиль, который будет применён прежде чем отрисовать график
+    ///@return этот же самый график
+    public Graph<T,XT,YT> style(GraphStyle add){
+        this.styles.add(add);
+        return this;
+    }
+    ///@return Возвращает объект, который будет отрисовывать график по точкам на экране
+    public GraphPrinter printer(){return printer;}
+    ///@param printer Объект, который будет отрисовывать график по точкам на экране
+    public void printer(GraphPrinter printer){this.printer = printer;}
+    
     /**Очищает график от данных*/
     public void clear() {
         points.clear();
@@ -72,10 +84,6 @@ public class Graph<T,XT,YT> {
     }
     /// @return true, если график пустой
     public boolean isEmpty() {return points.isEmpty();}
-
-    java.awt.geom.Point2D get(int index) {
-        return points.get(index);
-    }
 
     void set(ChartPanel chartPanel) {
         listenerList.add(ChartPanel.class, chartPanel);

@@ -275,6 +275,7 @@ public class ChartPanel extends javax.swing.JPanel implements EventListener, Gra
 	public void hidePopup() {
 		if (popup != null) {
 			popup.hide();
+            popup = null;
 		}
 	}
 	/** This method is called from within the constructor to
@@ -290,6 +291,16 @@ public class ChartPanel extends javax.swing.JPanel implements EventListener, Gra
         addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
             public void mouseMoved(java.awt.event.MouseEvent evt) {
                 formMouseMoved(evt);
+            }
+        });
+        addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusLost(java.awt.event.FocusEvent evt) {
+                formFocusLost(evt);
+            }
+        });
+        addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                formMouseExited(evt);
             }
         });
 
@@ -336,6 +347,14 @@ public class ChartPanel extends javax.swing.JPanel implements EventListener, Gra
 		}
 		showPopup(text.toString());
     }//GEN-LAST:event_formMouseMoved
+
+    private void formFocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_formFocusLost
+        hidePopup();
+    }//GEN-LAST:event_formFocusLost
+
+    private void formMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_formMouseExited
+        hidePopup();
+    }//GEN-LAST:event_formMouseExited
 
 	@Override
 	public void graphChanged(GraphUpdateEvent event) {

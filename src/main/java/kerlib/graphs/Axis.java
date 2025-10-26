@@ -161,12 +161,22 @@ public abstract class Axis<T> {
      * @param point
      * @return
      */
-    double x(java.awt.geom.Point2D point){return horizontalPrinter.xyOffset + horizontalPrinter.trainsformator.apply(point.getX());}
+    double x(java.awt.geom.Point2D point){return x(point.getX());}
+    /** Функция получения координаты на холсте для точки
+     * @param x
+     * @return
+     */
+    double x(double x){return horizontalPrinter.xyOffset + horizontalPrinter.trainsformator.apply(x);}
     /** Функция получения координаты на холсте для точки
      * @param point
      * @return
      */
-    double y(java.awt.geom.Point2D point){return vertivalPrinter.xyOffset + vertivalPrinter.trainsformator.apply(point.getY());}
+    double y(java.awt.geom.Point2D point){return y(point.getY());}
+    /** Функция получения координаты на холсте для точки
+     * @param y
+     * @return
+     */
+    double y(double y){return vertivalPrinter.xyOffset + vertivalPrinter.trainsformator.apply(y);}
 
     /**Преобразует значение экрана в подпись значения для оси
      * @param x координата по оси
