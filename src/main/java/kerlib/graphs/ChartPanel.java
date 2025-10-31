@@ -4,21 +4,13 @@
  */
 package kerlib.graphs;
 
-import java.awt.BasicStroke;
-import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.LayoutManager;
 import java.awt.Point;
-import java.awt.Stroke;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.geom.Line2D;
-import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.EventListener;
 import java.util.List;
-import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JToolTip;
@@ -33,21 +25,7 @@ import kerlib.graphs.Graph.GraphUpdateEvent;
  * @author Kerravitarr
  */
 public class ChartPanel extends javax.swing.JPanel implements EventListener, Graph.GraphChangeListener {
-	///Все вертикальные оси
-	private List<Axis> Y = new ArrayList<>();
-	///Все горизонтальные оси
-	private List<Axis> X = new ArrayList<>();
-
-
-	/**Все графика*/
-	private List<Graph<?,?,?>> graphs = new ArrayList<>();
-	/**Длина в пикселях образца линии графика*/
-	private static final int LENGHT_GRAPH_TEST = 20;
-	/**Всплывающая подсказка около мышки*/
-	protected Popup popup = null;
-	/**А это всплывающая подсказка, её физическое воплащение*/
-	protected final JToolTip toolTip = new JToolTip();
-
+    public enum LegendPosition {TOP,RIGHT,BOTTOM,LEFT,}
 	/** Creates new form ChartPanel */
 	public ChartPanel() {
 		initComponents();
@@ -98,13 +76,55 @@ public class ChartPanel extends javax.swing.JPanel implements EventListener, Gra
 	
 	/** @param g холст, на котором надо отрисовать панель*/
 	protected void paintComponent(Graphics2D g){
-		var minX = 0d;
-		var maxX = (double)getWidth();
+		var minX = 10d;
+		var maxX = (double)getWidth()-10d;
 		var minY = 10d;
-		var maxY = (double)getHeight();
+		var maxY = (double)getHeight()-10d;
 		var of = g.getFont();
 		var smalF = of.deriveFont(10f);
 		var g3 = new kerlib.draw.UsableGraphics(g);
+        ///Отрисовка легенды
+        {
+            var dist_between_labels = 10;
+            if(lpos == LegendPosition.BOTTOM || lpos == LegendPosition.TOP){
+                //Если сверху или снизу, то легеду оформляем в виде идущих друг за другом подписей
+                var x0 = minX;
+                var y0 = 0d;
+                var maxH = 0d;
+                for(var graph : graphs){
+                    if(graph.isEmpty() || !graph.isNeedSignature()) continue;
+                    var b = graph.signatures().getBonds(graph, g);
+                    if(x0 != minX && x0 + b.getWidth() >= maxX){
+                       x0 = minX;
+                       y0 += maxH;
+                       maxH = 0;
+                       x0 += b.getWidth() + dist_between_labels;
+                    } else {
+                        maxH = Math.max(maxH, b.getHeight());
+                        x0 += b.getWidth() + dist_between_labels;
+                    }
+                }
+                if(lpos == LegendPosition.BOTTOM){
+                    x0 = minX;
+                    y0 = maxY -= y0 + maxH;
+                    for(var graph : graphs){
+                        if(graph.isEmpty() || !graph.isNeedSignature()) continue;
+                        var b = graph.signatures().getBonds(graph, g);
+                        if(x0 != minX && x0 + b.getWidth() >= maxX){
+                            x0 = minX;
+                            y0 += maxH;
+                            maxH = 0;
+                            graph.signatures().drow(graph, g, x0, y0);
+                            x0 += b.getWidth() + dist_between_labels;
+                        } else {
+                            graph.signatures().drow(graph, g, x0, y0);
+                            maxH = Math.max(maxH, b.getHeight());
+                            x0 += b.getWidth() + dist_between_labels;
+                        }
+                    }
+                }
+            }
+        }
 		///Этап рисования графика I - отрисовка осей
 		{
 			var defH = tools.getTextHeight(of, "А");
@@ -365,4 +385,18 @@ public class ChartPanel extends javax.swing.JPanel implements EventListener, Gra
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     // End of variables declaration//GEN-END:variables
+ 	/**Длина в пикселях образца линии графика*/
+    private static final int LENGHT_GRAPH_TEST = 20;
+    //////Все вертикальные оси
+	private List<Axis> Y = new ArrayList<>();
+	///Все горизонтальные оси
+	private List<Axis> X = new ArrayList<>();
+	/**Все графика*/
+	private List<Graph<?,?,?>> graphs = new ArrayList<>();
+	/**Всплывающая подсказка около мышки*/
+	protected Popup popup = null;
+	/**А это всплывающая подсказка, её физическое воплащение*/
+	protected final JToolTip toolTip = new JToolTip();
+    ///Положение легенды графика
+    private LegendPosition lpos = LegendPosition.BOTTOM;
 }

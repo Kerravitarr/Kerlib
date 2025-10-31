@@ -12,27 +12,6 @@ import javax.swing.event.EventListenerList;
 
 /**Сам график с даннымми*/
 public class Graph<T,XT,YT> {
-    ///Название графика
-    public final String name;
-    ///Ось X графика
-    Axis<XT> X;
-    ///Ось Y графика
-    Axis<YT> Y;
-    ///Все координаты графика
-    private final List<java.awt.geom.Point2D> points = new ArrayList<>();
-    ///Все стили, которые надо применить для отображения графика
-    final List<GraphStyle> styles = new ArrayList<>();
-    private GraphPrinter printer;
-
-    /**Нужна ли подпись графика внизу?*/
-    private boolean isNeedSignature = true;
-
-    /**Функция превращения объекта в ординату X*/
-    private final java.util.function.Function<T, XT> toX;
-    /**Функция превращения объекта в ординату Y*/
-    private final java.util.function.Function<T, YT> toY;
-    ///Слушатели событий от этого графика
-    private transient EventListenerList listenerList;
 
     public Graph(String n, Axis<XT> x, Axis<YT> y) {
         this(n, x, y, null,null);
@@ -68,7 +47,14 @@ public class Graph<T,XT,YT> {
     ///@return Возвращает объект, который будет отрисовывать график по точкам на экране
     public GraphPrinter printer(){return printer;}
     ///@param printer Объект, который будет отрисовывать график по точкам на экране
-    public void printer(GraphPrinter printer){this.printer = printer;}
+    public Graph<T,XT,YT> printer(GraphPrinter printer){this.printer = printer; return this;}
+    ///@return Возвращает объект, который будет отрисовывать легедну
+    public GraphSignatures signatures(){return signatures;}
+    ///@param signatures Объект, который будет отрисовывать легенду
+    public Graph<T,XT,YT> signatures(GraphSignatures signatures){this.signatures = signatures; return this;}
+    ///@return true, если надо создать подпись для графика
+    public boolean isNeedSignature(){return isNeedSignature;}
+    
     
     /**Очищает график от данных*/
     public void clear() {
@@ -91,7 +77,6 @@ public class Graph<T,XT,YT> {
     }
 
     void draw(java.awt.Graphics2D g) {
-        if(printer == null) printer = new DottedSmoothMarkers();
         printer.draw(g,points,X,Y);
     }
 
@@ -116,4 +101,28 @@ public class Graph<T,XT,YT> {
 
     }
 
+    ///Название графика
+    public final String name;
+    ///Ось X графика
+    Axis<XT> X;
+    ///Ось Y графика
+    Axis<YT> Y;
+    ///Все координаты графика
+    private final List<java.awt.geom.Point2D> points = new ArrayList<>();
+    ///Все стили, которые надо применить для отображения графика
+    final List<GraphStyle> styles = new ArrayList<>();
+    ///Объект, который будет рисовать все точки графика
+    private GraphPrinter printer = new DottedSmoothMarkers();
+    ///Объект, который будет создавать легенду графика
+    private GraphSignatures signatures = new GraphSignatures();
+
+    /**Функция превращения объекта в ординату X*/
+    private final java.util.function.Function<T, XT> toX;
+    /**Функция превращения объекта в ординату Y*/
+    private final java.util.function.Function<T, YT> toY;
+    ///Слушатели событий от этого графика
+    private transient EventListenerList listenerList;
+
+    /**Нужна ли подпись графика внизу?*/
+    private boolean isNeedSignature = true;
 }

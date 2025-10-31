@@ -146,11 +146,22 @@ public class AxisDate extends Axis<Date>{
         var formatter = new SimpleDateFormat(getNumberFormat(left,k));
         {
             var hr = height/range;
-            var step = k.length * n;
-            var min = roundMin(k);
+            var min = roundMin(k);var stepType = switch (k) {
+                case MILISECOND -> Calendar.MILLISECOND;
+                case SECOND -> Calendar.SECOND;
+                case MINUTE -> Calendar.MINUTE;
+                case HOUR -> Calendar.HOUR_OF_DAY;
+                case DAY -> Calendar.DAY_OF_MONTH;
+                case MONTH -> Calendar.MONTH;
+                case YEAR -> Calendar.YEAR;
+                default -> throw new AssertionError();
+            };
+            var stepSize = n;
             printer.setY(() -> {
-                for(var i = min; i < maximum; i += step){
+                for(var i = min.getTime().getTime(); i < maximum;){
                     printer.tick(height-(i-minimum)*hr,formatter.format(i));
+                    min.set(stepType, min.get(stepType)+stepSize);
+                    i = min.getTime().getTime();
                 }
             }, v -> height-(v-minimum)*hr, v -> formatter.format(Math.round((height-v)/hr+minimum)));
         }
@@ -239,29 +250,64 @@ public class AxisDate extends Axis<Date>{
         var formatter = new SimpleDateFormat(getNumberFormat(left,k));
         {
             var wr = width/range;
-            var step = k.length * n;
             var min = roundMin(k);
+            var stepType = switch (k) {
+                case MILISECOND -> Calendar.MILLISECOND;
+                case SECOND -> Calendar.SECOND;
+                case MINUTE -> Calendar.MINUTE;
+                case HOUR -> Calendar.HOUR_OF_DAY;
+                case DAY -> Calendar.DAY_OF_MONTH;
+                case MONTH -> Calendar.MONTH;
+                case YEAR -> Calendar.YEAR;
+                default -> throw new AssertionError();
+            };
+            var stepSize = n;
             printer.setX(() -> {
-                for(var i = min; i < maximum; i += step){
+                for(var i = min.getTime().getTime(); i < maximum;){
                     printer.tick((i-minimum)*wr,formatter.format(i));
+                    min.set(stepType, min.get(stepType)+stepSize);
+                    i = min.getTime().getTime();
                 }
             }, v -> (v - minimum)*wr, v -> formatter.format(v/wr+minimum), kerlib.draw.tools.getTextWidth(g2d, formatter.format(testDate)));
         }
     }
     /**@return минимальное значение, которое будет отображено на оси при заданном интервале */
-    private long roundMin(DatePath val){
+    private Calendar roundMin(DatePath val){
         switch (val) {
             case MILISECOND -> {
-                return Math.round(minimum);
+                var calendar = Calendar.getInstance();
+                calendar.setTimeInMillis(Math.round(minimum));
+                return calendar;
             }
             case SECOND -> {
-                return Math.round(Math.ceil(minimum/1000)*1000);
+                var calendar = Calendar.getInstance();
+                calendar.setTimeInMillis(Math.round(minimum));
+                var isNext = calendar.get(Calendar.MILLISECOND) > 0;
+                calendar.set(Calendar.MILLISECOND, 0);
+                if(isNext)
+                    calendar.set(Calendar.SECOND, calendar.get(Calendar.SECOND)+1);
+                return calendar;
             }
             case MINUTE -> {
-                return Math.round(Math.ceil(minimum/(60 * 1000))*(60 * 1000));
+                var calendar = Calendar.getInstance();
+                calendar.setTimeInMillis(Math.round(minimum));
+                var isNext = calendar.get(Calendar.MILLISECOND) > 0 || calendar.get(Calendar.SECOND) > 0;
+                calendar.set(Calendar.MILLISECOND, 0);
+                calendar.set(Calendar.SECOND, 0);
+                if(isNext)
+                    calendar.set(Calendar.MINUTE, calendar.get(Calendar.MINUTE)+1);
+                return calendar;
             }
             case HOUR -> {
-                return Math.round(Math.ceil(minimum/(60 * 60 * 1000))*(60 * 60 * 1000));
+                var calendar = Calendar.getInstance();
+                calendar.setTimeInMillis(Math.round(minimum));
+                var isNext = calendar.get(Calendar.MILLISECOND) > 0 || calendar.get(Calendar.SECOND) > 0 || calendar.get(Calendar.MINUTE) > 0;
+                calendar.set(Calendar.MILLISECOND, 0);
+                calendar.set(Calendar.SECOND, 0);
+                calendar.set(Calendar.MINUTE, 0);
+                if(isNext)
+                    calendar.set(Calendar.HOUR_OF_DAY, calendar.get(Calendar.HOUR_OF_DAY)+1);
+                return calendar;
             }
             case DAY -> {
                 var calendar = Calendar.getInstance();
@@ -273,7 +319,7 @@ public class AxisDate extends Axis<Date>{
                 calendar.set(Calendar.HOUR_OF_DAY, 0);
                 if(isNext)
                     calendar.set(Calendar.DAY_OF_MONTH, calendar.get(Calendar.DAY_OF_MONTH)+1);
-                return calendar.getTime().getTime();
+                return calendar;
             }
             case MONTH -> {
                 var calendar = Calendar.getInstance();
@@ -286,7 +332,7 @@ public class AxisDate extends Axis<Date>{
                 calendar.set(Calendar.DAY_OF_MONTH, 1);
                 if(isNext)
                     calendar.set(Calendar.MONTH, calendar.get(Calendar.MONTH)+1);
-                return calendar.getTime().getTime();
+                return calendar;
             }
             case YEAR -> {
                 var calendar = Calendar.getInstance();
@@ -299,7 +345,7 @@ public class AxisDate extends Axis<Date>{
                 calendar.set(Calendar.DAY_OF_YEAR, 1);
                 if(isNext)
                     calendar.set(Calendar.YEAR, calendar.get(Calendar.YEAR)+1);
-                return calendar.getTime().getTime();
+                return calendar;
             }
             default -> throw new IllegalArgumentException("Неизвестный тип округления " + val);
         }
