@@ -248,12 +248,28 @@ public abstract class Axis<T> {
             toString = toStr;
             maxTickText = kerlib.draw.tools.getTextHeight(g2d, "А");
         }
+        /**Сохранение функции отрисовки вертикальной оси, когда значений нет
+         * @param text текст, который надо отпечатать
+         * @param height высота оси
+         * @return ширина текста
+         */
+        public int setY(String text, int height){
+            setY(() -> tick(height/2d,text,alignmentY.center), _ -> height/2d, _ -> text);
+            return kerlib.draw.tools.getTextWidth(g2d, text);
+        }
         /** @param c функция отрисовки значений оси. В качестве параметра передаётся ордината начала оси*/
         public void setX(Drow c,java.util.function.Function<Double,Double> t, java.util.function.Function<Double,String> toStr, int maxText){
             drow = c;
             trainsformator = t;
             toString = toStr;
             maxTickText = maxText;
+        }
+        /**Сохранение функции отрисовки горизонтальной оси, когда значений нет
+         * @param text текст, который надо отпечатать
+         * @param width ширина оси
+         */
+        public void setX(String text, int width){
+            setX(() -> tick(width/2,text,alignmentX.center), _ -> width/2d, _ -> text, 0);
         }
         /**Функция рисования подписей на горизонтальной оси
          * @param x координата, где надо разместить подпись

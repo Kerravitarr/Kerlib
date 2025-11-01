@@ -6,19 +6,16 @@ import java.util.Calendar;
 import java.util.Date;
 
 import kerlib.draw.tools;
-import kerlib.draw.tools.alignmentX;
-import kerlib.draw.tools.alignmentY;
-
 public class AxisDate extends Axis<Date>{
     ///Часть времени, некоторая
     private static enum DatePath {
-        MILISECOND(1,"SSS","."),
-        SECOND(MILISECOND.length * 1000,"ss",":"),
-        MINUTE(SECOND.length * 60,"mm",":"),
-        HOUR(MINUTE.length * 60,"HH"," "),
-        DAY(HOUR.length * 24,"dd","-"),
-        MONTH(DAY.length * 30,"MM","-"),
-        YEAR(Math.round(DAY.length * 365.25),"YYYY",""),
+        MILISECOND(1,"SSS",".",Calendar.MILLISECOND,0, new int[]{1,2,5,10,20,50,100,200,500}),
+        SECOND(MILISECOND.length * 1000,"ss",":",Calendar.SECOND,0,new int[]{1,2,5,10,20,30}),
+        MINUTE(SECOND.length * 60,"mm",":", Calendar.MINUTE,0,new int[]{1,2,5,10,20,30}),
+        HOUR(MINUTE.length * 60,"HH"," ",Calendar.HOUR_OF_DAY,0,new int[]{1,2,3,6,12}),
+        DAY(HOUR.length * 24,"dd","-",Calendar.DAY_OF_MONTH,1,new int[]{1,2,7}),
+        MONTH(DAY.length * 30,"MM","-",Calendar.MONTH,1,new int[]{1,2,3,4,6}),
+        YEAR(Math.round(DAY.length * 365.25),"YYYY","",Calendar.YEAR,0,new int[]{1,2,5,10,20,50,100,200,500,1000,2000,5000,10_000,20_000,50_000}),
         ;
         ///Форматированная строка для вывода числа
         public static DatePath[] format = new DatePath[]{YEAR, MONTH, DAY, HOUR, MINUTE, SECOND, MILISECOND};
@@ -28,21 +25,20 @@ public class AxisDate extends Axis<Date>{
         public final String letters;
         ///Знак разделения разрядов
         public final String separator;
+        ///Эквивалент объекта календаря
+        public final int calendarEqual;
+        ///Минимальное значение этого шага
+        public final int minValue;
+        ///С каким шагом изменяем время в этом интервале
+        public final int[] NUMBER_STEP;
 
-        private DatePath(long length, String letters, String separator) {
+        private DatePath(long length, String letters, String separator, int calendar,int min, int[] steps) {
             this.length = length;
             this.letters = letters;
             this.separator = separator;
-        }
-        
-       
-        ///Возвращает интервал времени, больший, чем заданное число милисекунд
-        static DatePath upper(long time){
-            for(var p : values()){
-                if(p.length >= time)
-                    return p;
-            }
-            return YEAR;
+            this.minValue = min;
+            this.calendarEqual = calendar;
+            this.NUMBER_STEP = steps;
         }
         ///Возваращает интервал времени, меньший, чем заданное число милисекунд
         static DatePath lower(long time){
@@ -77,10 +73,7 @@ public class AxisDate extends Axis<Date>{
     public int maxWidth(Graphics2D g2d, int height,Printer printer){
         var charWidth = tools.getTextHeight(g2d, "А");
         if(maximum == minimum || charWidth * 2 <= height){
-            var formatter = new SimpleDateFormat(getNumberFormat(DatePath.YEAR,DatePath.MILISECOND));
-            var text = formatter.format((long)maximum);
-            printer.setY(() -> printer.tick(height/2d,text,alignmentY.center), _ -> height/2d, _ -> text);
-            return tools.getTextWidth(g2d, text);
+            return printer.setY(MAX_FORMAT.format((long)maximum), height);
         }
         //Теперь мы знаем, на сколько делений максимум мы можем поделить нашу ось
         var range = maximum - minimum;
@@ -91,10 +84,13 @@ public class AxisDate extends Axis<Date>{
         var previosK = right;
         var n = 0;
         var k = DatePath.MILISECOND;
-        WH: while (true) {
-            var step = 1;
+        while (true) {
+            var steps = right.NUMBER_STEP;
+            var start = steps[0];
+            var end = steps[steps.length-1];
+            var step = start;
             var findError = 0d;
-            for (var testStep : new int[]{1, 2, 5}) {
+            for (var testStep : steps) {
                 var ticks = range / (testStep * right.length);
                 if (ticks >= findError && ticks * charWidth < height) {
                     findError = ticks;
@@ -102,61 +98,49 @@ public class AxisDate extends Axis<Date>{
                 }
             }
             var pc = right;
-            switch (step) {
-                case 1 -> {
-                    if(previosK.length >= right.length)
-                       right = right.previos();
-                    else {
-                        var nb = range / (5 * right.previos().length);
-                        if(nb >= findError && nb * charWidth < height){
-                            n = 5;
-                            k = right.previos();
-                            break WH;
-                        } else {
-                            n = step;
-                            k = right;
-                            break WH;
-                        }
+            if(step == start){
+                if(previosK.length >= right.length)
+                    right = right.previos();
+                else {
+                    var nb = range / (end * right.previos().length);
+                    if(nb >= findError && nb * charWidth < height){
+                        n = end;
+                        k = right.previos();
+                        break;
+                    } else {
+                        n = step;
+                        k = right;
+                        break;
                     }
                 }
-                case 2 -> {
-                    n = step;
-                    k = right;
-                    break WH;
-                }
-                case 5 -> {
-                    if(previosK.length <= right.length)
-                       right = right.next();
-                    else {
-                        var nb = range / (1 * right.next().length);
-                        if(nb >= findError && nb * charWidth < height){
-                            n = 1;
-                            k = right.next();
-                            break WH;
-                        } else {
-                            n = step;
-                            k = right;
-                            break WH;
-                        }
+            } else if(step == end){
+                if(previosK.length <= right.length)
+                    right = right.next();
+                else {
+                    var nb = range / (start * right.next().length);
+                    if(nb >= findError && nb * charWidth < height){
+                        n = start;
+                        k = right.next();
+                        break;
+                    } else {
+                        n = step;
+                        k = right;
+                        break;
                     }
                 }
+            } else {
+                n = step;
+                k = right;
+                break;
             }
             previosK = pc;
         }
         var formatter = new SimpleDateFormat(getNumberFormat(left,k));
         {
             var hr = height/range;
-            var min = roundMin(k);var stepType = switch (k) {
-                case MILISECOND -> Calendar.MILLISECOND;
-                case SECOND -> Calendar.SECOND;
-                case MINUTE -> Calendar.MINUTE;
-                case HOUR -> Calendar.HOUR_OF_DAY;
-                case DAY -> Calendar.DAY_OF_MONTH;
-                case MONTH -> Calendar.MONTH;
-                case YEAR -> Calendar.YEAR;
-                default -> throw new AssertionError();
-            };
+            var stepType = k.calendarEqual;
             var stepSize = n;
+            var min = roundMin(k,stepSize);
             printer.setY(() -> {
                 for(var i = min.getTime().getTime(); i < maximum;){
                     printer.tick(height-(i-minimum)*hr,formatter.format(i));
@@ -171,14 +155,11 @@ public class AxisDate extends Axis<Date>{
     public void printHorizontalTicks(Graphics2D g2d, int width, Printer printer){
         var testDate = (long)maximum;
         if(maximum == minimum){
-            var formatter = new SimpleDateFormat(getNumberFormat(DatePath.YEAR,DatePath.MILISECOND));
-            var text = formatter.format(testDate);
-            printer.setX(() -> printer.tick(width/2,text,alignmentX.center), _ -> width/2d, _ -> text, 0);
+            printer.setX(MAX_FORMAT.format(testDate), width);
             return;
         }
         var range = maximum - minimum;
-        //А вот тут сложнее искать интервал
-        //То есть был в виде n*10^k
+        //А вот тут сложнее искать интервал. Потому что для разных чисел - он плавающий!
         var left = DatePath.lower(Math.round(range));
         var right = left;
         var previosK = right;
@@ -192,76 +173,66 @@ public class AxisDate extends Axis<Date>{
             if(maxWidth < w) return width; //Чтобы показать, что двигаться надо в эту сторону
             else return (int)maxWidth;
         };
-        WH: while (true) {
-            var bestNumber = 1;
+        while (true) {
+            var steps = right.NUMBER_STEP;
+            var start = steps[0];
+            var end = steps[steps.length-1];
+            var step = start;
             var findError = Double.MAX_VALUE;
-            for (var testStep : new int[]{1, 2, 5}) {
+            for (var testStep : steps) {
                 var ticks = range / (testStep * right.length);
                 var fwidth = calculateW.apply(ticks, right);
                 if(fwidth > 0 && fwidth <= findError){
                     findError = fwidth;
-                    bestNumber = testStep;
+                    step = testStep;
                 }
             }
             var pc = right;
-            switch (bestNumber) {
-                case 1 -> {
-                    if(previosK.length >= right.length)
-                       right = right.previos();
-                    else {
-                        var ticks = range / (5 * right.previos().length);
-                        var nextW = calculateW.apply(ticks, right.previos());
-                        if(nextW > 0 && nextW < findError){
-                            n = 5;
-                            k = right.previos();
-                            break WH;
-                        } else {
-                            n = bestNumber;
-                            k = right;
-                            break WH;
-                        }
+            if(step == start){
+                if(previosK.length >= right.length && right != DatePath.MILISECOND)
+                    right = right.previos();
+                else {
+                    var ticks = range / (end * right.previos().length);
+                    var nextW = calculateW.apply(ticks, right.previos());
+                    if(nextW > 0 && nextW < findError){
+                        n = end;
+                        k = right.previos();
+                        break;
+                    } else {
+                        n = step;
+                        k = right;
+                        break;
                     }
                 }
-                case 2 -> {
-                    n = bestNumber;
-                    k = right;
-                    break WH;
-                }
-                case 5 -> {
-                    if(previosK.length <= right.length)
-                       right = right.next();
-                    else {
-                        var ticks = range / (5 * right.next().length);
-                        var nextW = calculateW.apply(ticks, right.next());
-                        if(nextW > 0 && nextW < findError){
-                            n = 1;
-                            k = right.next();
-                            break WH;
-                        } else {
-                            n = bestNumber;
-                            k = right;
-                            break WH;
-                        }
+            } else if(step == end){
+                if(previosK.length <= right.length && right != DatePath.YEAR)
+                    right = right.next();
+                else {
+                    var ticks = range / (start * right.next().length);
+                    var nextW = calculateW.apply(ticks, right.next());
+                    if(nextW > 0 && nextW < findError){
+                        n = start;
+                        k = right.next();
+                        break;
+                    } else {
+                        n = step;
+                        k = right;
+                        break;
                     }
                 }
+            } else {
+                n = step;
+                k = right;
+                break;
             }
             previosK = pc;
         }
         var formatter = new SimpleDateFormat(getNumberFormat(left,k));
         {
             var wr = width/range;
-            var min = roundMin(k);
-            var stepType = switch (k) {
-                case MILISECOND -> Calendar.MILLISECOND;
-                case SECOND -> Calendar.SECOND;
-                case MINUTE -> Calendar.MINUTE;
-                case HOUR -> Calendar.HOUR_OF_DAY;
-                case DAY -> Calendar.DAY_OF_MONTH;
-                case MONTH -> Calendar.MONTH;
-                case YEAR -> Calendar.YEAR;
-                default -> throw new AssertionError();
-            };
+            var stepType = k.calendarEqual;
             var stepSize = n;
+            var min = roundMin(k,stepSize);
             printer.setX(() -> {
                 for(var i = min.getTime().getTime(); i < maximum;){
                     printer.tick((i-minimum)*wr,formatter.format(i));
@@ -272,83 +243,62 @@ public class AxisDate extends Axis<Date>{
         }
     }
     /**@return минимальное значение, которое будет отображено на оси при заданном интервале */
-    private Calendar roundMin(DatePath val){
-        switch (val) {
-            case MILISECOND -> {
-                var calendar = Calendar.getInstance();
-                calendar.setTimeInMillis(Math.round(minimum));
-                return calendar;
-            }
-            case SECOND -> {
-                var calendar = Calendar.getInstance();
-                calendar.setTimeInMillis(Math.round(minimum));
-                var isNext = calendar.get(Calendar.MILLISECOND) > 0;
-                calendar.set(Calendar.MILLISECOND, 0);
-                if(isNext)
-                    calendar.set(Calendar.SECOND, calendar.get(Calendar.SECOND)+1);
-                return calendar;
-            }
-            case MINUTE -> {
-                var calendar = Calendar.getInstance();
-                calendar.setTimeInMillis(Math.round(minimum));
-                var isNext = calendar.get(Calendar.MILLISECOND) > 0 || calendar.get(Calendar.SECOND) > 0;
-                calendar.set(Calendar.MILLISECOND, 0);
-                calendar.set(Calendar.SECOND, 0);
-                if(isNext)
-                    calendar.set(Calendar.MINUTE, calendar.get(Calendar.MINUTE)+1);
-                return calendar;
-            }
-            case HOUR -> {
-                var calendar = Calendar.getInstance();
-                calendar.setTimeInMillis(Math.round(minimum));
-                var isNext = calendar.get(Calendar.MILLISECOND) > 0 || calendar.get(Calendar.SECOND) > 0 || calendar.get(Calendar.MINUTE) > 0;
-                calendar.set(Calendar.MILLISECOND, 0);
-                calendar.set(Calendar.SECOND, 0);
-                calendar.set(Calendar.MINUTE, 0);
-                if(isNext)
-                    calendar.set(Calendar.HOUR_OF_DAY, calendar.get(Calendar.HOUR_OF_DAY)+1);
-                return calendar;
-            }
-            case DAY -> {
-                var calendar = Calendar.getInstance();
-                calendar.setTimeInMillis(Math.round(minimum));
-                var isNext = calendar.get(Calendar.MILLISECOND) > 0 || calendar.get(Calendar.SECOND) > 0 || calendar.get(Calendar.MINUTE) > 0 || calendar.get(Calendar.HOUR_OF_DAY) > 0;
-                calendar.set(Calendar.MILLISECOND, 0);
-                calendar.set(Calendar.SECOND, 0);
-                calendar.set(Calendar.MINUTE, 0);
-                calendar.set(Calendar.HOUR_OF_DAY, 0);
-                if(isNext)
-                    calendar.set(Calendar.DAY_OF_MONTH, calendar.get(Calendar.DAY_OF_MONTH)+1);
-                return calendar;
-            }
-            case MONTH -> {
-                var calendar = Calendar.getInstance();
-                calendar.setTimeInMillis(Math.round(minimum));
-                var isNext = calendar.get(Calendar.MILLISECOND) > 0 || calendar.get(Calendar.SECOND) > 0 || calendar.get(Calendar.MINUTE) > 0 || calendar.get(Calendar.HOUR_OF_DAY) > 0 || calendar.get(Calendar.DAY_OF_MONTH) > 1;
-                calendar.set(Calendar.MILLISECOND, 0);
-                calendar.set(Calendar.SECOND, 0);
-                calendar.set(Calendar.MINUTE, 0);
-                calendar.set(Calendar.HOUR_OF_DAY, 0);
-                calendar.set(Calendar.DAY_OF_MONTH, 1);
-                if(isNext)
-                    calendar.set(Calendar.MONTH, calendar.get(Calendar.MONTH)+1);
-                return calendar;
-            }
-            case YEAR -> {
-                var calendar = Calendar.getInstance();
-                calendar.setTimeInMillis(Math.round(minimum));
-                var isNext = calendar.get(Calendar.MILLISECOND) > 0 || calendar.get(Calendar.SECOND) > 0 || calendar.get(Calendar.MINUTE) > 0 || calendar.get(Calendar.HOUR_OF_DAY) > 0 || calendar.get(Calendar.DAY_OF_YEAR) > 1;
-                calendar.set(Calendar.MILLISECOND, 0);
-                calendar.set(Calendar.SECOND, 0);
-                calendar.set(Calendar.MINUTE, 0);
-                calendar.set(Calendar.HOUR_OF_DAY, 0);
-                calendar.set(Calendar.DAY_OF_YEAR, 1);
-                if(isNext)
-                    calendar.set(Calendar.YEAR, calendar.get(Calendar.YEAR)+1);
-                return calendar;
-            }
-            default -> throw new IllegalArgumentException("Неизвестный тип округления " + val);
+    private Calendar roundMin(DatePath val, int step){
+        var calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(Math.round(minimum));
+        var isNext = false;
+        for(var c : DatePath.values()){
+            if(c == val) break;
+            isNext |= calendar.get(c.calendarEqual) > 0;
+            calendar.set(c.calendarEqual, c.minValue);
         }
+        if(isNext){
+            switch (val) {
+                case MILISECOND,SECOND,MINUTE,HOUR -> {
+                    var next = calendar.get(val.calendarEqual) + 1;
+                    var ost = next % step;
+                    calendar.set(val.calendarEqual, ost == 0 ? next : (next + step - ost));
+                }
+                case DAY ->{
+                    if(step == 7){
+                        ///Если шаг по 7 дней, то пусть будет по понедельникам шаг
+                        var tar = calendar.get(val.calendarEqual) + 1;
+                        calendar.set(val.calendarEqual, tar);
+                        if(calendar.get(Calendar.DAY_OF_WEEK) != Calendar.MONDAY){
+                            calendar.set(val.calendarEqual, tar + (7 - (calendar.get(Calendar.DAY_OF_WEEK) - Calendar.MONDAY)));
+                        }
+                    } else {
+                        calendar.set(val.calendarEqual, calendar.get(val.calendarEqual) + 1);
+                    }
+                }
+                case MONTH -> {
+                    //Месяц просто начинается с 1, а не с 0
+                    if(step == 3){
+                        //По 3 месяца - по сезонам!
+                        var tar = calendar.get(val.calendarEqual) + 1;
+                        calendar.set(val.calendarEqual, tar);
+                        var newM = calendar.get(val.calendarEqual);
+                        switch (newM) {
+                            case Calendar.JANUARY,Calendar.APRIL,Calendar.JULY,Calendar.OCTOBER -> {
+                                calendar.set(val.calendarEqual, tar+2);
+                            }
+                            case Calendar.FEBRUARY,Calendar.MAY,Calendar.AUGUST,Calendar.NOVEMBER -> {
+                                calendar.set(val.calendarEqual, tar+1);
+                            }
+                            default -> throw new AssertionError();
+                        }
+                    } else {
+                        var next = calendar.get(val.calendarEqual) + 1;
+                        var ost = next % step;
+                        calendar.set(val.calendarEqual, next + (ost == 0 ? 0 : (step - ost)));
+                    }
+                }
+                case YEAR -> {
+                    calendar.set(val.calendarEqual, calendar.get(val.calendarEqual) + 1);
+                }
+            }
+        }
+        return calendar;
     }
     ///Возвращает форматирование для даты
     /// @param left левая граница (макисмальная. То есть время по неё обрезается)
@@ -370,4 +320,6 @@ public class AxisDate extends Axis<Date>{
     public String toString() {
         return String.format("%s%f;%f%s,%s%s", isAutoresizeMin ? "<-" : "[", minimum, maximum, isAutoresizeMax ? "->" : "]", name, unit);
     }
+    ///Формат для вывода максимального значения числа
+    private final static SimpleDateFormat MAX_FORMAT = new SimpleDateFormat(getNumberFormat(DatePath.YEAR,DatePath.MILISECOND));
 }

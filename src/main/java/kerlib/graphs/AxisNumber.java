@@ -33,11 +33,7 @@ public class AxisNumber<T extends Number> extends Axis<T>{
         var charWidth = tools.getTextHeight(g2d, "А");
         var previous = Math.floor(height / (charWidth*2));
         if(maximum == minimum || previous <= 1){
-            var power = (int)Math.floor(Math.log10(maximum == 0 ? 1 : maximum));
-            var formatter = new DecimalFormat(getNumberFormat(power), SYMBOLS);
-            var text = formatter.format(maximum);
-            printer.setY(() -> printer.tick(height/2d,text,alignmentY.center), _ -> height/2d, _ -> text);
-            return tools.getTextWidth(g2d, text);
+            return printer.setY(new DecimalFormat(getNumberFormat(log10(maximum)), SYMBOLS).format(maximum),height);
         }
         //Теперь мы знаем, на сколько делений максимум мы можем поделить нашу ось
         var range = maximum - minimum;
@@ -118,10 +114,7 @@ public class AxisNumber<T extends Number> extends Axis<T>{
     @Override
     public void printHorizontalTicks(Graphics2D g2d, int width, Printer printer){
         if(maximum == minimum){
-            var power = log10(maximum);
-            var formatter = new DecimalFormat(getNumberFormat(power), SYMBOLS);
-            var text = formatter.format(maximum);
-            printer.setX(() -> printer.tick(width/2,text,alignmentX.center), _ -> width/2d, _ -> text, 0);
+            printer.setX(new DecimalFormat(getNumberFormat(log10(maximum)), SYMBOLS).format(maximum), width);
             return;
         }
         var range = maximum - minimum;
