@@ -6,12 +6,14 @@
 package kerlib.graphs;
 
 import java.awt.Graphics2D;
+import javax.swing.event.EventListenerList;
 
 import kerlib.draw.tools.alignmentX;
 import kerlib.draw.tools.alignmentY;
 
 /**Ось графикa*/
 public abstract class Axis<T> {
+    
     ///Название оси
     public final String name;
     ///Единицы измерения, если есть
@@ -26,17 +28,9 @@ public abstract class Axis<T> {
 
     /**Макисмальное значение*/
     protected double maximum;
-    ///Максимальное значение, верхняя граница оси
-    public double maximum() {return maximum;}
     /**Минимальное значение*/
     protected double minimum;
-    ///Минимальное значение, нижняя граница оси
-    public double minimum() {return minimum;}
 
-    /**Масштаб линии в текущий момент времени, пк/единицу*/
-    double scale = 1;
-    /**Нулевой пиксель на экране*/
-    double p0 = 1;
 
     ///Ось пуста? На ней не задано минимумов и максимумов
     private boolean isEmpty = true;
@@ -44,15 +38,40 @@ public abstract class Axis<T> {
     private Printer vertivalPrinter;
     ///Объект, который будет выводить ось на печать
     private Printer horizontalPrinter;
+    ///Слушатели событий от этой оси
+    private transient EventListenerList listenerList = new EventListenerList();;
 
-    Axis() {
+    protected Axis() {
         this("", "");
     }
-    Axis(String n, String u) {
+    protected Axis(String n, String u) {
         name = n;
         unit = u;
         reset();
     }
+    ///@return Максимальное значение, верхняя граница оси
+    public double maximum() {return maximum;}
+    /// @param max Максимальное значение, верхняя граница оси
+    public void maximum(double max){
+        setMaxAutoresize(false);
+        if(max != maximum){
+            this.maximum = max;
+            fireChangeEvent(null);
+        }
+    }
+    ///@return Минимальное значение, нижняя граница оси
+    public double minimum() {return minimum;}
+    /// @param min Минимальное значение, нижняя граница оси
+    public void minimum(double min){
+        setMinAutoresize(false);
+        if(min != minimum){
+            this.minimum = min;
+            fireChangeEvent(null);
+        }
+    }
+
+
+    
     /** @param min нужно авторасширение по минимуму?*/
     public void setMinAutoresize(boolean min) {
         setAutoresize(min, isAutoresizeMax);
@@ -68,8 +87,11 @@ public abstract class Axis<T> {
      * @param max нужно авторасширение по максимуму?
      */
     public void setAutoresize(boolean min, boolean max) {
-        isAutoresizeMin = min;
-        isAutoresizeMax = max;
+        if(isAutoresizeMin != min || isAutoresizeMax != max){
+            isAutoresizeMin = min;
+            isAutoresizeMax = max;
+            fireChangeEvent(AxisUpdateEvent.STATUS.NEED_RECALCULATE);
+        }
     }
     ///@return true, если для оси не заданы минимальное и максимальное значения
     public boolean isEmpty() {return isEmpty;}
@@ -92,6 +114,52 @@ public abstract class Axis<T> {
      */
     protected abstract void printHorizontalTicks(Graphics2D g2d, int width, Printer printer);
 
+    
+    /**
+     * Sends an {@link AxisChangeEvent} to all registered listeners.
+     */
+    protected void fireChangeEvent(AxisUpdateEvent.STATUS status) {
+        var listeners = this.listenerList.getListenerList();
+        var event = new AxisUpdateEvent(status,this);
+        for (var i = listeners.length - 2; i >= 0; i -= 2) {
+            if (AxisChangeListener.class.isAssignableFrom((Class<?>)listeners[i])) {
+                ((AxisChangeListener) listeners[i + 1]).axisChanged(event);
+            }
+        }
+    }
+    
+    static interface AxisChangeListener {
+        public void axisChanged(AxisUpdateEvent event);
+    }
+    static class AxisUpdateEvent {
+        enum STATUS{
+            NEED_RECALCULATE,
+            DEFAULT
+        }
+        ///Какое событие случилось
+        public final STATUS status;
+        ///У какой оси
+        public final Axis<?> object;
+
+        public AxisUpdateEvent(STATUS status, Axis<?> object) {
+            this.status = status == null ? STATUS.DEFAULT : status;
+            this.object = object;
+        }
+        
+        
+    }
+    
+    ///Добавить ось на панель для рисования
+    void set(ChartPanel chartPanel) {
+        listenerList.add(ChartPanel.class, chartPanel);
+    }
+    ///Убрать ось с панели для рисования
+    void unset(ChartPanel chartPanel) {
+        listenerList.remove(ChartPanel.class, chartPanel);
+        reset();
+        fireChangeEvent(AxisUpdateEvent.STATUS.NEED_RECALCULATE);
+    }
+    
     ///Преобразует значение в число. Так как график строится только по числам!
     /// @param v объект, с которым работает ось
     /// @return значение в некоторых единицах

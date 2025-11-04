@@ -26,6 +26,11 @@ public abstract class GraphPrinter {
     public void setPP(PointPrinter pp) {
         this.pointPrinter = pp;
     }
+    ///@param trend объект, который отрисует линию тренда
+    public GraphPrinter setTrendLine(GraphPrinter trend){
+        this.trendLine = trend;
+        return this;
+    }
 
     ///Отрисовывает на холсте все точки
     /// @param g Графический контекст
@@ -33,7 +38,10 @@ public abstract class GraphPrinter {
     /// @param x Ось x
     /// @param y Ось y
     final void draw(Graphics2D g, List<Point2D> points, Axis<?> x, Axis<?> y){
-        draw(g, points.stream().map(p -> (Point2D) new Point2D.Double(x.x(p), y.y(p))).toList());
+        var localPoints = points.stream().map(p -> (Point2D) new Point2D.Double(x.x(p), y.y(p))).toList();
+        //Линия тренда первая, потому что она должна скрыться под график
+        if(trendLine != null)trendLine.draw(g, localPoints);
+        draw(g, localPoints);
     }
     ///Отрисовывает на холте точки
     /// @param g Графический контекст
@@ -54,6 +62,8 @@ public abstract class GraphPrinter {
     protected void drawMarker(Graphics2D g, Point2D p) {
         drawMarker(g, p.getX(), p.getY());
     }
-
+    ///Объект, который будет печаать точки графика. Сами маркеры точек
     private PointPrinter pointPrinter;
+    ///Объект для печати линии тренда, если есть
+    private GraphPrinter trendLine;
 }

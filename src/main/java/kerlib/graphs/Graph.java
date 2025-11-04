@@ -5,6 +5,7 @@
 
 package kerlib.graphs;
 
+import kerlib.graphs.ltypes.DottedSmoothMarkers;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,16 +43,17 @@ public class Graph<T,XT,YT> {
     ///@return этот же самый график
     public Graph<T,XT,YT> style(GraphStyle add){
         this.styles.add(add);
+        fireChangeEvent();
         return this;
     }
     ///@return Возвращает объект, который будет отрисовывать график по точкам на экране
     public GraphPrinter printer(){return printer;}
     ///@param printer Объект, который будет отрисовывать график по точкам на экране
-    public Graph<T,XT,YT> printer(GraphPrinter printer){this.printer = printer; return this;}
+    public Graph<T,XT,YT> printer(GraphPrinter printer){this.printer = printer;fireChangeEvent(); return this;}
     ///@return Возвращает объект, который будет отрисовывать легедну
     public GraphSignatures signatures(){return signatures;}
     ///@param signatures Объект, который будет отрисовывать легенду
-    public Graph<T,XT,YT> signatures(GraphSignatures signatures){this.signatures = signatures; return this;}
+    public Graph<T,XT,YT> signatures(GraphSignatures signatures){this.signatures = signatures; fireChangeEvent(); return this;}
     ///@return true, если надо создать подпись для графика
     public boolean isNeedSignature(){return isNeedSignature;}
     
@@ -71,13 +73,25 @@ public class Graph<T,XT,YT> {
     /// @return true, если график пустой
     public boolean isEmpty() {return points.isEmpty();}
 
+    ///Добавить график на панель для рисования
     void set(ChartPanel chartPanel) {
         listenerList.add(ChartPanel.class, chartPanel);
         fireChangeEvent();
     }
+    ///Убрать график с панели для рисования
+    void unset(ChartPanel chartPanel) {
+        listenerList.remove(ChartPanel.class, chartPanel);
+    }
 
     void draw(java.awt.Graphics2D g) {
         printer.draw(g,points,X,Y);
+    }
+    ///Обновляет по осям минимумы и максимумы
+    void recalculate() {
+        this.points.forEach(p -> {
+            X.add(p.getX());
+            Y.add(p.getY());
+        });
     }
 
     /**
@@ -93,13 +107,10 @@ public class Graph<T,XT,YT> {
         }
     }
 
-
     static interface GraphChangeListener {
         public void graphChanged(GraphUpdateEvent event);
     }
-    static class GraphUpdateEvent {
-
-    }
+    static class GraphUpdateEvent {}
 
     ///Название графика
     public final String name;

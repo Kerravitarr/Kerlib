@@ -1,4 +1,4 @@
-package kerlib.graphs;
+package kerlib.graphs.axis;
 
 import java.awt.Graphics2D;
 import java.text.SimpleDateFormat;
@@ -6,6 +6,7 @@ import java.util.Calendar;
 import java.util.Date;
 
 import kerlib.draw.tools;
+import kerlib.graphs.Axis;
 public class AxisDate extends Axis<Date>{
     ///Часть времени, некоторая
     private static enum DatePath {

@@ -3,11 +3,12 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 
-package kerlib.graphs;
+package kerlib.graphs.ltypes;
 
 import java.awt.Graphics2D;
 import java.awt.geom.Point2D;
 import java.util.List;
+import kerlib.graphs.GraphPrinter;
 
 /** Точечная с линейными кривыми и маркерами
  * @author Kerravitarr (github.com/Kerravitarr)

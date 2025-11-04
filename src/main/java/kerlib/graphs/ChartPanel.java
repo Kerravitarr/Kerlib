@@ -24,7 +24,8 @@ import kerlib.graphs.Graph.GraphUpdateEvent;
 /**Панель графика. На нём будет всё рисоваться
  * @author Kerravitarr
  */
-public class ChartPanel extends javax.swing.JPanel implements EventListener, Graph.GraphChangeListener {
+public class ChartPanel extends javax.swing.JPanel implements EventListener, Graph.GraphChangeListener, Axis.AxisChangeListener {
+
     public enum LegendPosition {TOP,RIGHT,BOTTOM,LEFT,}
 	/** Creates new form ChartPanel */
 	public ChartPanel() {
@@ -49,17 +50,22 @@ public class ChartPanel extends javax.swing.JPanel implements EventListener, Gra
         graphs.add(graph);
 		graph.set(this);
 		if(!Y.contains(graph.Y)){
-			Y.add(graph.Y);
+			graph.Y.set(this);
+            Y.add(graph.Y);
 		}
 		if(!X.contains(graph.X)){
+			graph.X.set(this);
 			X.add(graph.X);
 		}
 		return graph;
     }
 	/**Очищает поле*/
 	public void clear(){
+        graphs.forEach(g -> g.unset(this));
 		graphs.clear();
+        Y.forEach(y -> y.unset(this));
 		Y.clear();
+        X.forEach(x -> x.unset(this));
 		X.clear();
 	}
 	
@@ -282,12 +288,15 @@ public class ChartPanel extends javax.swing.JPanel implements EventListener, Gra
 		toolTip.setTipText("<html>" + text);
 		hidePopup();
         if(text.isBlank()) return;
-		final Point position = getMousePosition();
-		final Point loc = getLocationOnScreen();
+		var position = getMousePosition();
+		var loc = getLocationOnScreen();
 		if (position == null) {
 			popup = PopupFactory.getSharedInstance().getPopup(ChartPanel.this, toolTip, loc.x, loc.y);
 		} else {
-			popup = PopupFactory.getSharedInstance().getPopup(ChartPanel.this, toolTip, loc.x + position.x + 10, loc.y + position.y);
+            var s = toolTip.getBounds();
+            var dx = position.x > getWidth() / 2 ? (s.width+10) : -10;
+            var dy = position.y > getHeight()/ 2 ? (s.height+10) : -10;
+			popup = PopupFactory.getSharedInstance().getPopup(ChartPanel.this, toolTip, loc.x + position.x - dx, loc.y + position.y - dy);
 		}
 		popup.show();
 	}	
@@ -381,6 +390,21 @@ public class ChartPanel extends javax.swing.JPanel implements EventListener, Gra
 		revalidate();
 		repaint();
 	}
+    @Override
+    public void axisChanged(Axis.AxisUpdateEvent event) {
+        switch (event.status) {
+            case NEED_RECALCULATE -> {
+                graphs.forEach(g ->{
+                    if(g.X == event.object || g.Y == event.object){
+                        g.recalculate();
+                    }
+                });
+            }
+        }
+		revalidate();
+		repaint();
+    }
+    
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

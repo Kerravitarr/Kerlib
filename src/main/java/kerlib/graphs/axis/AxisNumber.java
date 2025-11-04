@@ -1,4 +1,4 @@
-package kerlib.graphs;
+package kerlib.graphs.axis;
 
 import java.awt.Graphics2D;
 import java.text.DecimalFormat;
@@ -8,6 +8,7 @@ import java.util.Locale;
 import kerlib.draw.tools;
 import kerlib.draw.tools.alignmentX;
 import kerlib.draw.tools.alignmentY;
+import kerlib.graphs.Axis;
 
 public class AxisNumber<T extends Number> extends Axis<T>{
     ///Формат вывода чисел
@@ -46,6 +47,7 @@ public class AxisNumber<T extends Number> extends Axis<T>{
         var k = 0;
         while (true) {
             var base = Math.pow(10, power);
+            if(base == 0) break;
             var bestNumber = TICK_STEP[0];
             var minError = Double.MAX_VALUE;
             for (var multiplier : TICK_STEP) {
