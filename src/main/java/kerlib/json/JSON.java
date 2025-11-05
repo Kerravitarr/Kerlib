@@ -109,7 +109,7 @@ public final class JSON{
 	 * @param <T>
 	 * @param cls ожидаемый класс
 	 * @param key ключ
-	 * @param def значение по умолчанию
+	 * @param def значение по умолчанию. Если функция не задана, то по умолчанию будет значение null
 	 * @return значение, или null, если значение не найдено
 	 * @throws ClassCastException возникает, когда возвращаемое значение довольно сильно отличается от желаемого
 	 */
@@ -124,7 +124,7 @@ public final class JSON{
 	 * @return значение, или null, если значение не найдено
 	 * @throws ClassCastException возникает, когда возвращаемое значение довольно сильно отличается от желаемого
 	 */
-	public <T> T get(Class<T> cls, String key, T def) throws IllegalArgumentException {
+	public <T> T getDef(Class<T> cls, String key, T def) throws IllegalArgumentException {
 		return get(cls, key, (java.util.function.Supplier<T>) () -> def);
 	}
 	/**Получает значение массива по ключу
@@ -142,6 +142,7 @@ public final class JSON{
 	 * @param <T>
 	 * @param cls - ожидаемый класс элементов
 	 * @param key - ключ
+	 * @param def значение по умолчанию. Если функция не задана, то по умолчанию будет значение null
 	 * @return - значение, или null, если значение не найдено
 	 * @throws IllegalArgumentException возникает, если элемент представляет единственное значение и вернуть как массив его нельзя
 	 * @throws ClassCastException возникает, когда возвращаемое значение довольно сильно отличается от желаемого
@@ -158,7 +159,7 @@ public final class JSON{
 	 * @throws IllegalArgumentException возникает, если элемент представляет единственное значение и вернуть как массив его нельзя
 	 * @throws ClassCastException возникает, когда возвращаемое значение довольно сильно отличается от желаемого
 	 */
-	public <T> List<T> getA(Class<T> cls, String key, List<T> def) {
+	public <T> List<T> getADef(Class<T> cls, String key, List<T> def) {
 		return getA(cls,key, () -> def);
 	}
 	/**Получает массив JSON по ключу
@@ -291,7 +292,6 @@ public final class JSON{
 	 * @param key - ключ
 	 * @return - значение, или null, если значение не найдено
 	 */
-	@Deprecated
 	public List<Long> getAL(String key) {
 		return getA(Long.class, key);
 	}
@@ -301,7 +301,6 @@ public final class JSON{
 	 * @param key - ключ
 	 * @return - значение, или null, если значение не найдено
 	 */
-	@Deprecated
 	public int getI(String key) {
 		return get(int.class, key);
 	}
@@ -311,7 +310,6 @@ public final class JSON{
 	 * @param key - ключ
 	 * @return - значение, или null, если значение не найдено
 	 */
-	@Deprecated
 	public long getL(String key) {
 		return get(long.class, key);
 	}
@@ -321,7 +319,6 @@ public final class JSON{
 	 * @param key - ключ
 	 * @return - значение, или null, если значение не найдено
 	 */
-	@Deprecated
 	public double getD(String key) {
 		return get(double.class, key);
 	}
