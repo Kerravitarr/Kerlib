@@ -4,30 +4,32 @@
  */
 package kerlib.json;
 
-/**Разные ошибки, возникающие при парсинге файла*/
+///Ошбики, которые возникают при разборе объекта JSON
+///
+/// @author Kerravitarr (github.com/Kerravitarr)
 public class ParseException extends RuntimeException {
 
-    /**Что за ошибка?*/
-    private ERROR errorType;
-    /**Какой объект мы не ожидали?*/
-    private Object unexpectedObject;
-    /**Какая позиция в тексте*/
-    private long position;
+    ///Тип ошибки
+    private final ERROR errorType;
+    ///Вспомогательные данные по ошибке
+    private final Object unexpectedObject;
+    ///Позиция в разбираемом объекте
+    private final long position;
 
     public ParseException(long position, ERROR errorType, Object unexpectedObject) {
         this.position = position;
         this.errorType = errorType;
         this.unexpectedObject = unexpectedObject;
     }
-
+    ///@return тип ошибки
     public ERROR getErrorType() {
         return errorType;
     }
-
+    ///@return позиция ошибки
     public long getPosition() {
         return position;
     }
-
+    ///@return вспомогательный объект этой ошибки
     public Object getUnexpectedObject() {
         return unexpectedObject;
     }
@@ -38,7 +40,7 @@ public class ParseException extends RuntimeException {
         switch (errorType) {
             case UNEXPECTED_CHAR -> sb.append("Неожиданный символ '").append(unexpectedObject).append("' в позиции ").append(position).append(".");
             case UNEXPECTED_TOKEN -> sb.append("Неожиданный токен '").append(unexpectedObject).append("' в позиции ").append(position).append(".");
-            case UNEXPECTED_EXCEPTION -> sb.append("Unexpected exception at position ").append(position).append(": ").append(unexpectedObject);
+            case UNEXPECTED_EXCEPTION -> sb.append("Неожиданное исключение в позиции ").append(position).append(": ").append(unexpectedObject);
             case UNEXPECTED_VALUE -> sb.append("Неожиданное значение в позиции ").append(position).append(": ").append(unexpectedObject);
             default -> sb.append("Неизвестная ошибка в позиции ").append(position).append(":").append(unexpectedObject).append(".");
         }

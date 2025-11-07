@@ -11,11 +11,8 @@ import java.util.List;
 import java.util.Set;
 
 
-/**
- * Класс, который отвечает за стиль JSON
- * @author Kerravitarr
- *
- */
+///Класс, который отвечает за объекты типа JSON
+/// @author Kerravitarr (github.com/Kerravitarr)
 public final class JSON{
 	/** Создаёт пустой объект JSON */
 	public JSON(){
@@ -67,11 +64,11 @@ public final class JSON{
 	 * @throws ClassCastException возникает, когда возвращаемое значение довольно сильно отличается от желаемого
 	 */
 	public static <T> List<T> parse(Class<T> cls,Reader in) throws ParseException, IOException {
-		TokenReader reader = new TokenReader(in);
+		var reader = new TokenReader(in);
 		if(!reader.hasNext()) { // Пустой файл
 			return new ArrayList<>();
 		} else {
-			Token token = reader.next();
+			var token = reader.next();
 			if(token.type == JSON_TOKEN.BEGIN_ARRAY)
 				return Serializer.unboxl(cls, parseA(reader));
 			else
@@ -183,7 +180,7 @@ public final class JSON{
 	 */
 	public String toJSONString() {
 		try {
-			StringWriter sw = new StringWriter();
+			var sw = new StringWriter();
 			toJSONString(sw);		
 			return sw.toString();
 		} catch (IOException e) {throw new RuntimeException(e);} // Быть такого не может! Не должен SW давать ошибки IO
@@ -201,7 +198,7 @@ public final class JSON{
 	 */
 	public String toBeautifulJSONString() {
 		try {
-			StringWriter sw = new StringWriter();
+			var sw = new StringWriter();
 			toBeautifulJSONString(sw);
 			return sw.toString();
 		} catch (IOException e) {throw new RuntimeException(e);} // Быть такого не может! Не должен SW давать ошибки IO
@@ -275,11 +272,11 @@ public final class JSON{
 	 */
 	@Deprecated
 	public static List<Object> JSONA(Reader in) throws ParseException, IOException {
-		TokenReader reader = new TokenReader(in);
+		var reader = new TokenReader(in);
 		if(!reader.hasNext()) { // Пустой файл
 			return new ArrayList<>();
 		}else {
-			Token token = reader.next();
+			var token = reader.next();
 			if(token.type == JSON_TOKEN.BEGIN_ARRAY)
 				return parseA(reader);
 			else
@@ -362,7 +359,7 @@ public final class JSON{
 		writer.write("{");
 		if(tabs != null)
 			writer.write("\n");
-		boolean isFirst = true;
+		var isFirst = true;
 		for (var param : parametrs.entrySet()) {
 			if(isFirst) isFirst = false;
 			else if(tabs != null) writer.write(",\n");
@@ -388,11 +385,11 @@ public final class JSON{
 	 * @throws IOException ошибка разбора, ошибка устройства чтения
 	 */
 	private void parse(Reader in) throws IOException, ParseException{
-		TokenReader reader = new TokenReader(in);
+		var reader = new TokenReader(in);
 		if(!reader.hasNext()) { // Пустой файл
 			parametrs.clear();
 		} else {
-			Token token = reader.next();
+			var token = reader.next();
 			if(token.type == JSON_TOKEN.BEGIN_OBJECT)
 				parametrs = parseO(reader).parametrs;
 			else
@@ -407,12 +404,12 @@ public final class JSON{
 	 * @throws IOException ошибка разбора, ошибка устройства чтения
 	 */
 	private static JSON parseO(TokenReader reader) throws ParseException, IOException {
-		JSON json = new JSON();
-		int expectToken = JSON_TOKEN.STRING.value | JSON_TOKEN.END_OBJECT.value; // Ключ или конец объекта
+		var json = new JSON();
+		var expectToken = JSON_TOKEN.STRING.value | JSON_TOKEN.END_OBJECT.value; // Ключ или конец объекта
 		String key = null;
-		JSON_TOKEN lastToken = JSON_TOKEN.BEGIN_OBJECT;
+		var lastToken = JSON_TOKEN.BEGIN_OBJECT;
 		while (reader.hasNext()) {
-			Token token = reader.next();
+			var token = reader.next();
 			if ((expectToken & token.type.value) == 0)
 				throw new ParseException(reader.pos, ERROR.UNEXPECTED_TOKEN, token.type);
 			switch (token.type) {
@@ -464,11 +461,11 @@ public final class JSON{
 	 * @throws IOException
 	 */
 	private static List<Object> parseA(TokenReader reader) throws ParseException, IOException {
-		List<Object> array = new ArrayList<>();
-		int expectToken = JSON_TOKEN.BEGIN_ARRAY.value | JSON_TOKEN.END_ARRAY.value | JSON_TOKEN.BEGIN_OBJECT.value
+		var array = new ArrayList();
+		var expectToken = JSON_TOKEN.BEGIN_ARRAY.value | JSON_TOKEN.END_ARRAY.value | JSON_TOKEN.BEGIN_OBJECT.value
 				 | JSON_TOKEN.NUMBER.value | JSON_TOKEN.BOOLEAN.value | JSON_TOKEN.STRING.value | JSON_TOKEN.NULL.value; // Массив чего у нас там?
 		while (reader.hasNext()) {
-			Token token = reader.next();
+			var token = reader.next();
 			if ((expectToken & token.type.value) == 0)
 				throw new ParseException(reader.pos, ERROR.UNEXPECTED_TOKEN, token.value);
 			switch (token.type) {

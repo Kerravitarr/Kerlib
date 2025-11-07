@@ -1,33 +1,32 @@
 package kerlib.graphs.axis;
 
 import java.awt.Graphics2D;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
-import java.util.Locale;
+import java.util.Collection;
 
 import kerlib.draw.tools;
 import kerlib.graphs.Axis;
 
-///Ось для списка любых чисел в любых размерностях
+///Ось для списка значений
 /// 
 /// @author Kerravitarr (github.com/Kerravitarr)
-public class AxisNumber<T extends Number> extends Axis<T>{
-    ///Формат вывода чисел
-    private final DecimalFormatSymbols SYMBOLS;
-    ///Коэффициенты округления чисел
-    final static int[] TICK_STEP = new int[]{1, 2, 5};
-    
-    
-    public AxisNumber(String name) {this(name, "");}
-    public AxisNumber(String name, String unit) {
+public class AxisList<T> extends Axis<T>{    
+    public AxisList(String name, Collection<T> values) {this(name, "",values);}
+    public AxisList(String name, String unit, Collection<T> values) {
+        this(name, unit, values, v -> v.toString());
+    }
+    public AxisList(String name, String unit, Collection<T> values, java.util.function.Function<T,String> toString) {
         super(name, unit);
-
-        Locale locale = Locale.getDefault();
-        SYMBOLS = new DecimalFormatSymbols(locale);
+        this.values = values;
+        this.toString = toString;
     }
     @Override
     protected double transformLocal(T v) {
-        return v.doubleValue();
+        var index = 0;
+        for(var i = values.iterator(); i.hasNext();++index){
+            if(i.next().equals(v))
+                return index;
+        }
+        return -1;
     }
     
     @Override
@@ -35,23 +34,23 @@ public class AxisNumber<T extends Number> extends Axis<T>{
         var charWidth = tools.getTextHeight(g2d, "А");
         var previous = Math.floor(height / (charWidth*2));
         if(maximum == minimum || previous <= 1){
-            return printer.setY(new DecimalFormat(getNumberFormat(log10(maximum)), SYMBOLS).format(maximum),height);
+            return printer.setY(format(maximum), height);
         }
         //Теперь мы знаем, на сколько делений максимум мы можем поделить нашу ось
         var range = maximum - minimum;
         var tickInterval = range / (previous-1);
         //Но надо найти такой шаг между делениями, чтобы он был красивым. 
         //То есть был в виде n*10^k
-        var power = log10(range);
+        var power = Math.max(0,AxisNumber.log10(range));
         var previosK = power;
         var n = 0;
         var k = 0;
         while (true) {
             var base = Math.pow(10, power);
             if(base == 0) break;
-            var bestNumber = TICK_STEP[0];
+            var bestNumber = AxisNumber.TICK_STEP[0];
             var minError = Double.MAX_VALUE;
-            for (var multiplier : TICK_STEP) {
+            for (var multiplier : AxisNumber.TICK_STEP) {
                 var tick = base * multiplier;
                 if (tick <= 0) continue;
                 var error = Math.abs(tick - tickInterval);
@@ -61,13 +60,13 @@ public class AxisNumber<T extends Number> extends Axis<T>{
                 }
             }
             var pc = power;
-            if(bestNumber == TICK_STEP[0]){
-                if(previosK >= power)
+            if(bestNumber == AxisNumber.TICK_STEP[0]){
+                if(previosK >= power && power > 0)
                     --power;
                  else {
                      var nb = Math.pow(10, power-1);
                      var tick = nb * 5;
-                     if(tick > 0 && Math.abs(tick - tickInterval) < minError){
+                     if(power > 0 && tick > 0 && Math.abs(tick - tickInterval) < minError){
                          n = 5;
                          k = power-1;
                          break;
@@ -77,7 +76,7 @@ public class AxisNumber<T extends Number> extends Axis<T>{
                          break;
                      }
                  }
-            } else if(bestNumber == TICK_STEP[TICK_STEP.length - 1]){
+            } else if(bestNumber == AxisNumber.TICK_STEP[AxisNumber.TICK_STEP.length - 1]){
                 if(previosK <= power)
                     ++power;
                  else {
@@ -101,47 +100,44 @@ public class AxisNumber<T extends Number> extends Axis<T>{
             previosK = pc;
         }
         var idealTickInterval = n * Math.pow(10, k);
-        var min = roundMin(idealTickInterval);
-        var max = roundMax(idealTickInterval);
-        var formatter = new DecimalFormat(getNumberFormat(k), SYMBOLS);
+        var min = Math.ceil(minimum/idealTickInterval)*idealTickInterval;
+        var max = Math.floor(maximum/idealTickInterval)*idealTickInterval;
         {
             var hr = height/range;
             printer.setY(() -> {
                 for(var i = min; i < max; i += idealTickInterval){
-                    printer.tick(height-(i-minimum)*hr,formatter.format(i));
+                    printer.tick(height-(i-minimum)*hr,format(i));
                 }
-            }, v -> height-(v-minimum)*hr, v -> formatter.format((height-v)/hr+minimum));
+            }, v -> height-(v-minimum)*hr, v -> format((height-v)/hr+minimum));
         }
-        return Math.max(tools.getTextWidth(g2d, formatter.format(min)),tools.getTextWidth(g2d, formatter.format(max)));
-    }    
+        return getMaxWidth(g2d);
+    }
     @Override
     public void printHorizontalTicks(Graphics2D g2d, int width, Printer printer){
         if(maximum == minimum){
-            printer.setX(new DecimalFormat(getNumberFormat(log10(maximum)), SYMBOLS).format(maximum), width);
+            printer.setX(format(maximum), width);
             return;
         }
         var range = maximum - minimum;
         //А вот тут сложнее искать интервал
         //То есть был в виде n*10^k
-        var power = log10(range);
+        var power = Math.max(0,AxisNumber.log10(range));
         var previosK = power;
         var n = 0;
         var k = 0;
+        var maxW = getMaxWidth(g2d);
         var calculateW = (java.util.function.BiFunction<Double,Integer,Integer>)(interval,pw) -> {
             var dels = (int)(range/interval); //Количество делений, которые будут размещены на оси
             if(dels == 0)return 0;
-            var max = roundMax(interval);
-            var formatter = new DecimalFormat(getNumberFormat(pw), SYMBOLS);
-            var w = kerlib.draw.tools.getTextWidth(g2d, formatter.format(max));
             var maxWidth = width/(dels * 2); //Расстояние между штрихами надо оставить двойное. Это очень важно, чтобы цифры не сливались!
-            if(maxWidth < w) return width; //Чтобы показать, что двигаться надо в эту сторону
+            if(maxWidth < maxW) return width; //Чтобы показать, что двигаться надо в эту сторону
             else return maxWidth;
         };
         while (true) {
             var base = Math.pow(10, power);
-            var bestNumber = TICK_STEP[0];
+            var bestNumber = AxisNumber.TICK_STEP[0];
             var minError = Double.MAX_VALUE;
-            for (var multiplier : TICK_STEP) {
+            for (var multiplier : AxisNumber.TICK_STEP) {
                 var tick = base * multiplier;
                 if (tick <= 0) continue;
                 var fwidth = calculateW.apply(tick, power);
@@ -151,14 +147,14 @@ public class AxisNumber<T extends Number> extends Axis<T>{
                 }
             }
             var pc = power;
-            if(bestNumber == TICK_STEP[0]){
-                if(previosK >= power)
+            if(bestNumber == AxisNumber.TICK_STEP[0]){
+                if(previosK >= power && power > 0)
                     --power;
                  else {
                      var nb = Math.pow(10, power-1);
                      var tick = nb * 5;
                      var nextW = calculateW.apply(tick, power-1);
-                     if(tick > 0 && nextW > 0 && nextW < minError){
+                     if(power > 0 && tick > 0 && nextW > 0 && nextW < minError){
                          n = 5;
                          k = power-1;
                          break;
@@ -168,7 +164,7 @@ public class AxisNumber<T extends Number> extends Axis<T>{
                          break;
                      }
                  }
-            }else if(bestNumber == TICK_STEP[TICK_STEP.length - 1]){
+            }else if(bestNumber == AxisNumber.TICK_STEP[AxisNumber.TICK_STEP.length - 1]){
                 if(previosK <= power)
                     ++power;
                  else {
@@ -193,39 +189,36 @@ public class AxisNumber<T extends Number> extends Axis<T>{
             previosK = pc;
         }
         var idealTickInterval = n * Math.pow(10, k);
-        var min = roundMin(idealTickInterval);
-        var max = roundMax(idealTickInterval);
-        var formatter = new DecimalFormat(getNumberFormat(k), SYMBOLS);
+        var min = Math.ceil(minimum/idealTickInterval)*idealTickInterval;
+        var max = Math.floor(maximum/idealTickInterval)*idealTickInterval;
         {
             var wr = width/range;
             printer.setX(() -> {
                 for(var i = min; i < max; i += idealTickInterval){
-                    printer.tick((i-minimum)*wr,formatter.format(i));
+                    printer.tick((i-minimum)*wr,format(i));
                 }
-            }, v -> (v - minimum)*wr, v -> formatter.format(v/wr+minimum), kerlib.draw.tools.getTextWidth(g2d, formatter.format(max)));
+            }, v -> (v - minimum)*wr, v -> format(v/wr+minimum), maxW);
         }
-    }
-    /**@return минимальное значение, которое будет отображено на оси при заданном интервале */
-    private double roundMin(double idealTickInterval){
-        return Math.ceil(minimum/idealTickInterval)*idealTickInterval;
-    }
-    /**@return максимальное значение, которое будет отображено на оси при заданном интервале */
-    private double roundMax(double idealTickInterval){
-        return Math.floor(maximum/idealTickInterval)*idealTickInterval;
-    }
-    private static String getNumberFormat(int k) {
-        if (k < 0) {
-            return "0." + "0".repeat(-k);
-        } else {
-            return "#"; // Без десятичных знаков
-        }
-    }
-    static int log10(double val){
-        return val == 0 ? 1 : (int) Math.floor(Math.log10(val));
     }
 
-    @Override
-    public String toString() {
-        return String.format("%s%f;%f%s,%s%s", isAutoresizeMin ? "<-" : "[", minimum, maximum, isAutoresizeMax ? "->" : "]", name, unit);
+    private int getMaxWidth(Graphics2D g2d){
+        var ret = 0;
+        for(var v : values)
+            ret = Math.max(ret,tools.getTextWidth(g2d, toString.apply(v)));
+        return ret;
     }
+    ///Преобразует индекс элемента в текст
+    private String format(double index){
+        var find = (int) index;
+        if(find < 0) return "Н/Д";
+        for(var i = values.iterator(); i.hasNext();--find,i.next()){
+            if(find == 0)
+                return toString.apply(i.next());
+        }
+        return "Н/Д";
+    }
+    ///Значения, доступные для оси
+    private Collection<T> values;
+    ///Функция преобразования элемента в строку
+    private java.util.function.Function<T,String> toString;
 }

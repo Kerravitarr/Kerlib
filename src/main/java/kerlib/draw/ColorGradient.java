@@ -84,9 +84,10 @@ public class ColorGradient {
             if(params[0] < 0) params[0] += Math.ceil(hsbto[0] - hsbfrom[0]);
         }
         if(params[0] == 0) params[0] = 1f;
-        
         for (var i = 1; i < params.length; i++)
-            params[i] = (hsbto[i] - hsbfrom[i]) / 100f;
+            params[i] = (hsbto[i] - hsbfrom[i]);
+        for (int i = 0; i < params.length; i++)
+            params[i] /= ((float)accuracy);
         for (int i = 0; i < colors.length; i++)
             colors[i] = getHSBColor(hsbfrom[0] + params[0] * i, hsbfrom[1] + params[1] * i, hsbfrom[2] + params[2] * i, hsbfrom[3] + params[3] * i);
     }

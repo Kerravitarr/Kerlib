@@ -23,8 +23,10 @@ public abstract class GraphPrinter {
         public void point(Graphics2D g,double x, double y);        
     }
     ///@param pp Функция отрисовки точки на графике
-    public void setPP(PointPrinter pp) {
+    ///@return текущий объект
+    public GraphPrinter setPP(PointPrinter pp) {
         this.pointPrinter = pp;
+        return this;
     }
     ///@param trend объект, который отрисует линию тренда
     public GraphPrinter setTrendLine(GraphPrinter trend){

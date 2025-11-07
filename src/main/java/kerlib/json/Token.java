@@ -4,14 +4,17 @@
  */
 package kerlib.json;
 
-/**Один прочитанный токен из потока*/
+///Один прочитанный токен из потока
+///
+/// @author Kerravitarr (github.com/Kerravitarr)
 class Token {
-
     public Token(JSON_TOKEN type, Object value) {
         this.type = type;
         this.value = value;
     }
+    ///Что за токен
     public final JSON_TOKEN type;
+    ///Объект, скрывающийся за этим токеном
     public final Object value;
 
     @Override

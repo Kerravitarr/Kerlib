@@ -113,18 +113,16 @@ public class tools {
 	public static int betwin(int min, int val, int max) {
         return val > max ? max : (val < min ? min : val);
 	}	
-    
+    ///Переменная, что надо написать о том, что остался отладочный код
+    private static boolean isWriteToLogError = false;
     @FunctionalInterface public interface Worker {void something();}
     /** @param doing будет выполнена, только если включены assert (запуск с флагом -enableassertions)*/
     public static void isAssert(Worker doing){
-        assert(((java.util.function.Supplier<Object>)() -> {doing.something(); return null;}).get() == null);
-        noAssert(() -> Logger.getLogger(tools.class.getName()).log(Level.SEVERE, "Остался отладочный код!!!"));
+        if(isAssert(true,false)) doing.something();
     }
     /** @param doing будет выполнена, только если НЕ включены assert (запуск без флага -enableassertions)*/
     public static void noAssert(Worker doing){
-        var isA = false;
-        assert(isA = true);
-        if(!isA) doing.something();
+        if(isAssert(false,true)) doing.something();
     }
     ///Функция, возвращающая разное значение в зависимости от ключённого режима
     ///Нужна для отладки. Для того, чтобы у приложения был разный режим в зависимости от включённого режима предупреждений
@@ -135,8 +133,7 @@ public class tools {
     public static <T> T isAssert(T noAssert, T isAssert){
         var isA = false;
         assert(isA = true);
-        if(!isA)
-            Logger.getLogger(tools.class.getName()).log(Level.SEVERE, "Остался отладочный код!!!");
+        if(!isA) debugCode();
         return isA ? isAssert : noAssert;
     }
     ///Экранирует все неподходящие символы, чтобы текст корректно отображался в html
@@ -183,5 +180,14 @@ public class tools {
                 old = file;
         }
         return old;
+    }
+    
+    
+    ///Фукнция, которая один раз предупреждает программиста, что где-то остался отладочный код в программе
+    private static void debugCode(){
+        if(isWriteToLogError){
+            isWriteToLogError = false;
+            Logger.getLogger(tools.class.getName()).log(Level.SEVERE, "Остался отладочный код!!!");
+        }
     }
 }

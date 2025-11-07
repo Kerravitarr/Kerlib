@@ -4,8 +4,17 @@
  */
 package kerlib.json;
 
-/**Возможные ошибки*/
+///Возможные ошибки при парсинге файла
+/// @author Kerravitarr (github.com/Kerravitarr)
 public enum ERROR {
-    UNEXPECTED_CHAR, UNEXPECTED_TOKEN, UNEXPECTED_EXCEPTION, UNEXPECTED_VALUE, UNKNOW
-    
+    ///Символ, который не ожидали
+    UNEXPECTED_CHAR, 
+    ///Токен, который не ожидали
+    UNEXPECTED_TOKEN, 
+    ///Неожиданное исключение в позиции
+    UNEXPECTED_EXCEPTION, 
+    //Неизвестный тип значения
+    UNEXPECTED_VALUE, 
+    //Что-то совсем уж странное
+    UNKNOW
 }

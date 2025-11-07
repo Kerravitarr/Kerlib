@@ -8,10 +8,12 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.List;
 
-/**Интерфейс для любого параметра JSON*/
+///Интерфейс для любого параметра JSON. Для его записи в объект или для приведения типов
+///
+/// @author Kerravitarr (github.com/Kerravitarr)
 class Serializer {
     /**
-     * Записывает красиво форматированный объект в поток.
+     * Записывает красиво (или не очень) форматированный объект в поток.
      * @param value_o объект, который надо записать
      * @param writer - цель, куда записывается объект
      * @param tabs - специальная переменная, позволяет сделать красивое форматирование.
@@ -22,11 +24,11 @@ class Serializer {
         if (value_o == null) {
             writer.write("null");
         } else if (value_o instanceof String s) {
-            final java.lang.StringBuffer sb = new StringBuffer();
+            var sb = new StringBuffer();
             sb.append("\"");
-            final int len = s.length();
-            for (int i = 0; i < len; i++) {
-                char ch = s.charAt(i);
+            var len = s.length();
+            for (var i = 0; i < len; i++) {
+                var ch = s.charAt(i);
                 switch (ch) {
                     case '"' -> sb.append("\\\"");
                     case '\\' -> sb.append("\\\\");
@@ -39,9 +41,9 @@ class Serializer {
                     default -> {
                         //Reference: http://www.unicode.org/versions/Unicode5.1.0/
                         if ((ch >= '\u0000' && ch <= '\u001F') || (ch >= '\u007F' && ch <= '\u009F') || (ch >= '\u2000' && ch <= '\u20FF')) {
-                            String ss = Integer.toHexString(ch);
+                            var ss = Integer.toHexString(ch);
                             sb.append("\\u");
-                            for (int k = 0; k < 4 - ss.length(); k++) {
+                            for (var k = 0; k < 4 - ss.length(); k++) {
                                 sb.append('0');
                             }
                             sb.append(ss.toUpperCase());
@@ -50,7 +52,7 @@ class Serializer {
                         }
                     }
                 }
-            } //for
+            }
             sb.append("\"");
             writer.write(sb.toString());
         } else if (value_o instanceof Enum e) {
@@ -67,22 +69,18 @@ class Serializer {
             if (list.isEmpty()) {
                 writer.write("[]");
             } else {
-                java.lang.Class<?> fcl = list.get(0).getClass();
-                if (!isBase(list.get(0)) || list.stream().filter(v -> !v.getClass().equals(fcl)).findAny().isPresent()) {
+                var fcl = list.get(0).getClass();
+                if (!isBase(list.get(0)) || list.stream().anyMatch(v -> !v.getClass().equals(fcl))) {
                     //У нас сложные или разноплановые объекты
                     writer.write("[");
                     if (tabs != null) {
                         writer.write("\n");
                     }
-                    boolean isFirst = true;
-                    for (java.lang.Object value : list) {
-                        if (isFirst) {
-                            isFirst = false;
-                        } else if (tabs != null) {
-                            writer.write(",\n");
-                        } else {
-                            writer.write(",");
-                        }
+                    var isFirst = true;
+                    for (var value : list) {
+                        if (isFirst) isFirst = false;
+                        else if (tabs != null) writer.write(",\n");
+                        else writer.write(",");
                         if (tabs != null) {
                             writer.write(tabs + "\t");
                             write(value, writer, tabs + "\t");
@@ -90,21 +88,15 @@ class Serializer {
                             write(value, writer, null);
                         }
                     }
-                    if (tabs != null) {
-                        writer.write("\n" + tabs + "]");
-                    } else {
-                        writer.write("]");
-                    }
+                    if (tabs != null) writer.write("\n" + tabs + "]");
+                    else              writer.write("]");
                 } else {
                     //У нас однородные примитивы
                     writer.write("[");
-                    boolean isFirst = true;
-                    for (java.lang.Object value : list) {
-                        if (isFirst) {
-                            isFirst = false;
-                        } else {
-                            writer.write(",");
-                        }
+                    var isFirst = true;
+                    for (var value : list) {
+                        if (isFirst) isFirst = false;
+                        else writer.write(",");
                         write(value, writer, null);
                     }
                     writer.write("]");
@@ -126,7 +118,7 @@ class Serializer {
         } else if (value_o instanceof List list) {
             return list.stream().map(value -> box(value)).toList();
         } else if (value_o.getClass().isArray()) {
-            final int length = java.lang.reflect.Array.getLength(value_o);
+            var length = java.lang.reflect.Array.getLength(value_o);
             return java.util.stream.IntStream.range(0, length).boxed().map(i -> box(java.lang.reflect.Array.get(value_o, i))).toList();
         } else {
             throw new IllegalArgumentException("Невозможно превести к JSON объект типа [" + value_o.getClass() + "] = " + value_o);

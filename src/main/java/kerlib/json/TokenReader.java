@@ -7,9 +7,10 @@ package kerlib.json;
 import java.io.IOException;
 import java.io.Reader;
 
-/**Чтец токенов*/
+///Чтец токенов
+///
+/// @author Kerravitarr (github.com/Kerravitarr)
 class TokenReader {
-
     /**Поток, из которого читаем*/
     private final Reader stream;
     /**Текущая позиция чтения*/
@@ -61,7 +62,7 @@ class TokenReader {
      * @throws JSON.ParseException
      */
     private Token readNumber(char ch) throws IOException, ParseException {
-        boolean isNegativ = ch == '-';
+        var isNegativ = ch == '-';
         if (isNegativ) {
             ch = read();
         }
@@ -80,18 +81,18 @@ class TokenReader {
                 return new Token(JSON_TOKEN.NUMBER, 0);
             }
         } else if (isDigit(ch)) {
-            java.lang.StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
             do {
                 sb.append(ch);
                 ch = read();
             } while (isDigit(ch));
             if (ch == '.') {
                 // Если это не число, то может точка?
-                double val = readFracAndExp(sb, ch);
+                var val = readFracAndExp(sb, ch);
                 return new Token(JSON_TOKEN.NUMBER, isNegativ ? -val : val);
             } else {
                 back();
-                Long long_ = Long.valueOf(sb.toString());
+                var long_ = Long.valueOf(sb.toString());
                 if (long_ < Integer.MAX_VALUE) {
                     return new Token(JSON_TOKEN.NUMBER, isNegativ ? -long_.intValue() : long_.intValue());
                 } else {
@@ -107,7 +108,7 @@ class TokenReader {
             }
         } else if (ch == 'I') {
             //Infinity
-            for (char c : "nfinity".toCharArray()) {
+            for (var c : "nfinity".toCharArray()) {
                 if ((ch = read()) != c) {
                     throw new ParseException(pos, ERROR.UNEXPECTED_CHAR, ch);
                 }
@@ -153,8 +154,8 @@ class TokenReader {
      * @throws JSON.ParseException
      */
     private Long readExp() throws IOException, ParseException {
-        StringBuilder sb = new StringBuilder();
-        char ch = read();
+        var sb = new StringBuilder();
+        var ch = read();
         if (ch == '+' || ch == '-') {
             sb.append(ch);
             ch = read();
@@ -185,9 +186,9 @@ class TokenReader {
      * @throws JSON.ParseException
      */
     private Token readString() throws IOException, ParseException {
-        StringBuilder sb = new StringBuilder();
+        var sb = new StringBuilder();
         while (true) {
-            char ch = read();
+            var ch = read();
             switch (ch) {
                 case '\\' -> {
                     switch (read()) {
@@ -200,8 +201,8 @@ class TokenReader {
                         case 'r' -> sb.append('\r');
                         case 't' -> sb.append('\t');
                         case 'u' -> {
-                            StringBuilder unix = new StringBuilder();
-                            for (int i = 0; i < 4; i++) {
+                            var unix = new StringBuilder();
+                            for (var i = 0; i < 4; i++) {
                                 ch = read();
                                 if (isHex(ch)) {
                                     unix.append(ch);
@@ -232,7 +233,7 @@ class TokenReader {
      */
     private Token readBoolean(char ch) throws IOException, ParseException {
         if (ch == 't') {
-            char[] buf = new char[3];
+            var buf = new char[3];
             pos += stream.read(buf);
             if (!(buf[0] == 'r' && buf[1] == 'u' && buf[2] == 'e')) {
                 throw new ParseException(pos, ERROR.UNEXPECTED_VALUE, "t" + buf[0] + buf[1] + buf[2]);
@@ -240,7 +241,7 @@ class TokenReader {
                 return new Token(JSON_TOKEN.BOOLEAN, true);
             }
         } else {
-            char[] buf = new char[4];
+            var buf = new char[4];
             pos += stream.read(buf);
             if (!(buf[0] == 'a' && buf[1] == 'l' && buf[2] == 's' && buf[3] == 'e')) {
                 throw new ParseException(pos, ERROR.UNEXPECTED_VALUE, "f" + buf[0] + buf[1] + buf[2] + buf[3]);
@@ -257,7 +258,7 @@ class TokenReader {
      * @throws JSON.ParseException
      */
     private Token readNull() throws IOException, ParseException {
-        char[] buf = new char[3];
+        var buf = new char[3];
         pos += stream.read(buf);
         if (!(buf[0] == 'u' && buf[1] == 'l' && buf[2] == 'l')) {
             throw new ParseException(pos, ERROR.UNEXPECTED_VALUE, "n" + buf[0] + buf[1] + buf[2]);
