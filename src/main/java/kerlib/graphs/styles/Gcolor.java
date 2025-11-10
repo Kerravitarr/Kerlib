@@ -13,13 +13,13 @@ public class Gcolor extends GraphStyle {
     private final java.awt.Color color;
     ///Создать цвет
     /// @param color Цвет
-    public Gcolor(java.awt.Color c) {
-        this.color = c;
+    public Gcolor(java.awt.Color color) {
+        this.color = color;
     }
 
     @Override
     public java.util.function.Consumer<Graphics2D> add(Graphics2D g) {
-        java.awt.Color oc = g.getColor();
+        var oc = g.getColor();
         g.setColor(this.color);
         return o -> o.setColor(oc);
     }
