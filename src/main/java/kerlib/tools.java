@@ -169,11 +169,20 @@ public class tools {
         return builder.toString();
     }
     /**Ищет самый старый файл в заданном месте
+     * @param where где искать, путь к файлу
+     * @param filter функция фильтраци файлов. Должна вернуть true для подходящих файлов
+     * @return самый старый файл в заданном месте или null
+     */
+    public static java.io.File findOldest(String where, java.util.function.Function<java.io.File, Boolean> filter){
+        return findOldest(new java.io.File(where), filter);
+    }
+    /**Ищет самый старый файл в заданном месте
      * @param where где искать
      * @param filter функция фильтраци файлов. Должна вернуть true для подходящих файлов
      * @return самый старый файл в заданном месте или null
      */
     public static java.io.File findOldest(java.io.File where, java.util.function.Function<java.io.File, Boolean> filter){
+        if(!where.exists()) return null;
         java.io.File old = null;
         for(var file : where.listFiles()){
             if(filter.apply(file) && (old == null || old.lastModified() <= file.lastModified()) )
