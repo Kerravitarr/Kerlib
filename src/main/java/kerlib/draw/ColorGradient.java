@@ -78,12 +78,13 @@ public class ColorGradient {
         var params = new float[4];
         if (isRainbow){
             params[0] = hsbto[0] - hsbfrom[0];
-            if(params[0] < 0) params[0] += Math.ceil(hsbfrom[0] - hsbto[0]);
+            if(params[0] < 0) params[0] += 1f;
         } else {
-            params[0] = hsbfrom[0] - hsbto[0];
-            if(params[0] < 0) params[0] += Math.ceil(hsbto[0] - hsbfrom[0]);
+            params[0] = -(hsbto[0] - hsbfrom[0]);
+            if(params[0] < 0) params[0] += 1f;
+            params[0] = -params[0];
         }
-        if(params[0] == 0) params[0] = 1f;
+        if(params[0] == 0) params[0] = isRainbow ? 1f : -1f;
         for (var i = 1; i < params.length; i++)
             params[i] = (hsbto[i] - hsbfrom[i]);
         for (int i = 0; i < params.length; i++)
