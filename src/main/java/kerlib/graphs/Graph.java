@@ -5,11 +5,13 @@
 
 package kerlib.graphs;
 
+import java.awt.Color;
 import kerlib.graphs.ltypes.DottedSmoothMarkers;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.event.EventListenerList;
+import kerlib.graphs.styles.Gcolor;
 
 /**Сам график с даннымми*/
 public class Graph<T,XT,YT> {
@@ -38,6 +40,10 @@ public class Graph<T,XT,YT> {
         points.add(new java.awt.geom.Point2D.Double(xv, yv));
         fireChangeEvent();
     }
+    ///Добавляет цвет к графику
+    ///@param color цвет графика
+    ///@return этот же самый график
+    public Graph<T,XT,YT> style(Color color){return style(new Gcolor(color));}
     ///Добавляет стили к текущему графику
     ///@param add стиль, который будет применён прежде чем отрисовать график
     ///@return этот же самый график

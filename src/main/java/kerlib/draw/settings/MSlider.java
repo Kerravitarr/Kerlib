@@ -124,7 +124,6 @@ public class MSlider extends JSlider {
     @Override public int getValue() {return value(0);}
     @Override public void setValue(int n) {value(0,n);}
     
-    
     @Override public void updateUI() {
         switch (UIManager.getLookAndFeel().getName()) {
             case "Metal" -> setUI(new MMetalSliderUI());

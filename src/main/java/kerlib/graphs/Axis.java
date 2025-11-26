@@ -131,8 +131,8 @@ public abstract class Axis<T> {
     static interface AxisChangeListener {
         public void axisChanged(AxisUpdateEvent event);
     }
-    static class AxisUpdateEvent {
-        enum STATUS{
+    protected static class AxisUpdateEvent {
+        public enum STATUS{
             NEED_RECALCULATE,
             DEFAULT
         }
@@ -180,7 +180,7 @@ public abstract class Axis<T> {
         isEmpty = false;
     }
     /**Сбрасывает ограничения оси*/
-    void reset() {
+    protected void reset() {
         if (isAutoresizeMin) {
             if (isAutoresizeMax) {
                 minimum = Double.MAX_VALUE;

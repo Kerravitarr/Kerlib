@@ -16,6 +16,8 @@ public class AxisNumber<T extends Number> extends Axis<T>{
     private final DecimalFormatSymbols SYMBOLS;
     ///Коэффициенты округления чисел
     final static int[] TICK_STEP = new int[]{1, 2, 5};
+    ///Масштаб оси. Масштаб входных данных
+    private double scale = 1;
     
     
     public AxisNumber(String name) {this(name, "");}
@@ -25,9 +27,23 @@ public class AxisNumber<T extends Number> extends Axis<T>{
         Locale locale = Locale.getDefault();
         SYMBOLS = new DecimalFormatSymbols(locale);
     }
+    ///@param groupingSeparator задаёт символ, используемый в качестве разделителя групп
+    public void setGroupingSeparator(char groupingSeparator){
+        getFormatSymbols().setGroupingSeparator(groupingSeparator);
+    }
+    ///@return Элемент формарматирвоания числа
+    public DecimalFormatSymbols getFormatSymbols(){return SYMBOLS;}
+    
+    public void scale(double scale){
+        if(this.scale != scale){
+            this.scale = scale;
+            reset();
+            fireChangeEvent(Axis.AxisUpdateEvent.STATUS.NEED_RECALCULATE);
+        }
+    }
     @Override
     protected double transformLocal(T v) {
-        return v.doubleValue();
+        return v.doubleValue() * scale;
     }
     
     @Override
@@ -35,7 +51,7 @@ public class AxisNumber<T extends Number> extends Axis<T>{
         var charWidth = tools.getTextHeight(g2d, "А");
         var previous = Math.floor(height / (charWidth*2));
         if(maximum == minimum || previous <= 1){
-            return printer.setY(new DecimalFormat(getNumberFormat(log10(maximum)), SYMBOLS).format(maximum),height);
+            return printer.setY(getNumberFormat(log10(maximum)).format(maximum),height);
         }
         //Теперь мы знаем, на сколько делений максимум мы можем поделить нашу ось
         var range = maximum - minimum;
@@ -103,7 +119,7 @@ public class AxisNumber<T extends Number> extends Axis<T>{
         var idealTickInterval = n * Math.pow(10, k);
         var min = roundMin(idealTickInterval);
         var max = roundMax(idealTickInterval);
-        var formatter = new DecimalFormat(getNumberFormat(k), SYMBOLS);
+        var formatter = getNumberFormat(k);
         {
             var hr = height/range;
             printer.setY(() -> {
@@ -117,7 +133,7 @@ public class AxisNumber<T extends Number> extends Axis<T>{
     @Override
     public void printHorizontalTicks(Graphics2D g2d, int width, Printer printer){
         if(maximum == minimum){
-            printer.setX(new DecimalFormat(getNumberFormat(log10(maximum)), SYMBOLS).format(maximum), width);
+            printer.setX(getNumberFormat(log10(maximum)).format(maximum), width);
             return;
         }
         var range = maximum - minimum;
@@ -131,7 +147,7 @@ public class AxisNumber<T extends Number> extends Axis<T>{
             var dels = (int)(range/interval); //Количество делений, которые будут размещены на оси
             if(dels == 0)return 0;
             var max = roundMax(interval);
-            var formatter = new DecimalFormat(getNumberFormat(pw), SYMBOLS);
+            var formatter = getNumberFormat(pw);
             var w = kerlib.draw.tools.getTextWidth(g2d, formatter.format(max));
             var maxWidth = width/(dels * 2); //Расстояние между штрихами надо оставить двойное. Это очень важно, чтобы цифры не сливались!
             if(maxWidth < w) return width; //Чтобы показать, что двигаться надо в эту сторону
@@ -195,7 +211,7 @@ public class AxisNumber<T extends Number> extends Axis<T>{
         var idealTickInterval = n * Math.pow(10, k);
         var min = roundMin(idealTickInterval);
         var max = roundMax(idealTickInterval);
-        var formatter = new DecimalFormat(getNumberFormat(k), SYMBOLS);
+        var formatter = getNumberFormat(k);
         {
             var wr = width/range;
             printer.setX(() -> {
@@ -213,11 +229,12 @@ public class AxisNumber<T extends Number> extends Axis<T>{
     private double roundMax(double idealTickInterval){
         return Math.floor(maximum/idealTickInterval)*idealTickInterval;
     }
-    private static String getNumberFormat(int k) {
+    
+    private DecimalFormat getNumberFormat(int k) {
         if (k < 0) {
-            return "0." + "0".repeat(-k);
+            return new DecimalFormat("#,##0." + "0".repeat(-k), getFormatSymbols());
         } else {
-            return "#"; // Без десятичных знаков
+            return new DecimalFormat("#,###", getFormatSymbols()); // Без десятичных знаков
         }
     }
     static int log10(double val){
