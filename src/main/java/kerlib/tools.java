@@ -190,7 +190,14 @@ public class tools {
         }
         return old;
     }
-    
+    ///Создаёт фильтр для сортировки уникальных значений
+    ///@param <T> тип объекта, который будет подвергнут сортировке
+    ///@param keyExtractor функция получения ключа из объекта. В идеале, получения хэша
+    ///@return функцию фильтрации, которая определяет - был уже этот объект в наборе или нет
+    public static <T> java.util.function.Predicate<T> distinct(java.util.function.Function<? super T, ?> keyExtractor) {
+        var seen = java.util.concurrent.ConcurrentHashMap.newKeySet();
+        return t -> seen.add(keyExtractor.apply(t));
+    }
     
     ///Фукнция, которая один раз предупреждает программиста, что где-то остался отладочный код в программе
     private static void debugCode(){

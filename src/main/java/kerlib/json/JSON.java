@@ -8,6 +8,7 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 
@@ -83,7 +84,7 @@ public final class JSON{
 	 * @return текущий объект для возможности создания цепочек
 	 */
 	public <T> JSON add(String key, T value) {
-		parametrs.put(key, Serializer.box(value));
+		((LinkedHashMap)parametrs).put(key, Serializer.box(value));
 		return this;
 	}
     ///Удаляет ключ из объекта
@@ -222,7 +223,9 @@ public final class JSON{
 	/**Возвращает список всех ключей объекта
 	 * @return список со всеми ключами
 	 */
-	public Set<String> getKeys(){ return parametrs.keySet(); }
+	public Set<String> getKeys(){ return parametrs.keySet();}
+    ///@return набор всех элементов объекта
+    public Set<Map.Entry<String, ?>> entrySet(){return (Set<Map.Entry<String, ?>> )parametrs.entrySet();}
 	@Override
 	public String toString() { return toJSONString(); }
 
@@ -500,5 +503,5 @@ public final class JSON{
 	
 	
 	/**Это список всех параметров объекта. Используется лист пар потому что было важное условие - сохранить порядок данных*/
-	private LinkedHashMap<String,Object> parametrs;
+	private LinkedHashMap<String,?> parametrs;
 }
