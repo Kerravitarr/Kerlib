@@ -344,7 +344,7 @@ public class Promise<T> {
      * @throws ExecutionException если Promise завершился с ошибкой
      * @throws InterruptedException если поток был прерван
      */
-    public T await() throws ExecutionException, InterruptedException {
+    public T awaitChecked() throws ExecutionException, InterruptedException {
         return future.get();
     }
     
@@ -353,7 +353,7 @@ public class Promise<T> {
      * @return результат Promise
      * @throws RuntimeException если Promise завершился с ошибкой или был прерван
      */
-    public T awaitUnchecked() {
+    public T await() {
         try {
             return future.get();
         } catch (InterruptedException | ExecutionException e) {
