@@ -40,6 +40,8 @@ public class Promise<T> {
     
     /// Исполнитель для виртуальных потоков
     private static final ExecutorService virtualExecutor = Executors.newVirtualThreadPerTaskExecutor();
+    /**Логгер для записи сообщений о работе класса*/
+    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(PromiseEnd.class.getName());
     ///Глобальное исключение. Зачем создавать каждый раз новое, если нужно всего одно?
     private static final PromiseEnd THROW = new PromiseEnd();
     
@@ -201,7 +203,8 @@ public class Promise<T> {
     public Promise<T> then(Consumer<T> onfulfilled, Consumer<Throwable> onrejected) {
         future.whenComplete((result, error) -> {
             if (error != null) {
-                onrejected.accept(error);
+                if(onrejected != null)onrejected.accept(error);
+                else logger.log(java.util.logging.Level.SEVERE, null, error);
             } else {
                 onfulfilled.accept(result);
             }
@@ -404,29 +407,37 @@ public class Promise<T> {
                 });
         });
     }
-    
     /**
      * Ожидает выполнения всех Promise и возвращает массив результатов.
      * @param <T> тип результатов Promise
      * @param promises массив Promise для ожидания
      * @return Promise с массивом результатов всех Promise
      */
-    public static <T> Promise<T[]> all(Promise<T>... promises) {
+    public static <T> Promise<Object[]> all(Promise<T>... promises) {
+        return all(Object[]::new);
+    }
+    /**
+     * Ожидает выполнения всех Promise и возвращает массив результатов.
+     * @param <T> тип результатов Promise
+     * @param generator функция создания массива нужного класса
+     * @param promises массив Promise для ожидания
+     * @return Promise с массивом результатов всех Promise
+     */
+    public static <T> Promise<T[]> all(IntFunction<T[]> generator, Promise<T>... promises) {
         return new Promise<>(null,resolve -> {
             @SuppressWarnings("unchecked")
             CompletableFuture<T>[] futures = new CompletableFuture[promises.length];
             for (int i = 0; i < promises.length; i++) {
                 futures[i] = promises[i].future;
             }
-            
             CompletableFuture.allOf(futures)
                 .thenApply(v -> {
                     @SuppressWarnings("unchecked")
-                    T[] results = (T[]) new Object[promises.length];
+                    var results = new java.util.ArrayList<>(promises.length);
                     for (int i = 0; i < promises.length; i++) {
-                        results[i] = futures[i].join();
+                        results.add(i,futures[i].join());
                     }
-                    return results;
+                    return results.toArray(generator);
                 })
                 .whenComplete((results, error) -> {
                     if (error != null) {
