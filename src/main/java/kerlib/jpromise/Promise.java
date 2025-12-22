@@ -389,7 +389,7 @@ public class Promise<T> {
      * @param tasks массив задач для выполнения
      * @return Promise, который завершается когда все задачи выполнены
      */
-    public static Promise<Void> all(Runnable... tasks) {
+    public static Promise<Void> all_run(Runnable... tasks) {
         return new Promise<>(null,resolve -> {
             CompletableFuture<?>[] futures = new CompletableFuture<?>[tasks.length];
             for (int i = 0; i < tasks.length; i++) {
@@ -413,17 +413,16 @@ public class Promise<T> {
      * @param promises массив Promise для ожидания
      * @return Promise с массивом результатов всех Promise
      */
-    public static <T> Promise<Object[]> all(Promise<T>... promises) {
-        return all(Object[]::new);
+    public static <T> Promise<java.util.List<T>> all(java.util.List<Promise<T>> promises) {
+        return all(promises.toArray(Promise[]::new));
     }
     /**
      * Ожидает выполнения всех Promise и возвращает массив результатов.
      * @param <T> тип результатов Promise
-     * @param generator функция создания массива нужного класса
      * @param promises массив Promise для ожидания
      * @return Promise с массивом результатов всех Promise
      */
-    public static <T> Promise<T[]> all(IntFunction<T[]> generator, Promise<T>... promises) {
+    public static <T> Promise<java.util.List<T>> all(Promise<T>... promises) {
         return new Promise<>(null,resolve -> {
             @SuppressWarnings("unchecked")
             CompletableFuture<T>[] futures = new CompletableFuture[promises.length];
@@ -433,11 +432,11 @@ public class Promise<T> {
             CompletableFuture.allOf(futures)
                 .thenApply(v -> {
                     @SuppressWarnings("unchecked")
-                    var results = new java.util.ArrayList<>(promises.length);
+                    var results = new java.util.ArrayList<T>(promises.length);
                     for (int i = 0; i < promises.length; i++) {
                         results.add(i,futures[i].join());
                     }
-                    return results.toArray(generator);
+                    return results;
                 })
                 .whenComplete((results, error) -> {
                     if (error != null) {
