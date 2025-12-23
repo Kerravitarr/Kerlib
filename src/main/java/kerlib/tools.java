@@ -4,6 +4,7 @@
  */
 package kerlib;
 
+import java.util.concurrent.locks.LockSupport;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -198,6 +199,39 @@ public class tools {
         var seen = java.util.concurrent.ConcurrentHashMap.newKeySet();
         return t -> seen.add(keyExtractor.apply(t));
     }
+    
+    
+	/**
+	 * Пауза для текущего потока
+	 * @param sec секунды
+	 */
+	public static void pause(long sec) {
+		pause_ms(sec * 1_000);
+	}
+	/**
+	 * Пауза для текущего потока
+	 * @param msec милисекунды
+	 */
+	public static void pause_ms(long msec) {
+		pause_ns(msec * 1_000_000);
+	}
+	/**
+	 * Пауза для текущего потока
+	 * @param nsec наносекунды
+	 */
+	public static void pause_ns(long nsec) {
+		LockSupport.parkNanos(nsec);
+	}
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     ///Фукнция, которая один раз предупреждает программиста, что где-то остался отладочный код в программе
     private static void debugCode(){
