@@ -53,6 +53,8 @@ public class Promise<T> {
     private Throwable rejectedError;
     /// Флаг завершения Promise
     private volatile boolean isSettled = false;
+    ///Флаг, что кто-то нашу ошбику заберёт себе
+    private volatile boolean isSilentError = false;
     
     /// Конструктор с только resolve функцией
     /// ВНИМАНИЕ!!! Вызов функции приводит к возникновению исключения PromiseEnd!!!
@@ -127,6 +129,9 @@ public class Promise<T> {
                     isSettled = true;
                     Promise.this.notifyAll();
                 }
+                if(!isSilentError){
+                    logger.log(java.util.logging.Level.SEVERE, "Произошла ошибка во время выполнения", error);
+                }
                 return THROW;
             };
             try {
@@ -148,6 +153,9 @@ public class Promise<T> {
                     future.completeExceptionally(e);
                     isSettled = true;
                     Promise.this.notifyAll();
+                }
+                if(!isSilentError){
+                    logger.log(java.util.logging.Level.SEVERE, "Произошла ошибка во время ожидания результата", e);
                 }
             }
         }
@@ -300,6 +308,8 @@ public class Promise<T> {
      * @return новый Promise с результатом обработки ошибки
      */
     public Promise<T> catchError(Function<Throwable, T> onrejected) {
+        if(onrejected == null) throw new IllegalArgumentException("Функция не может быть null");
+        this.isSilentError = true;
         return new Promise<>(null,resolve -> {
             this.future.whenComplete((result, error) -> {
                 if (error != null) {
@@ -407,6 +417,7 @@ public class Promise<T> {
                 });
         });
     }
+    
     /**
      * Ожидает выполнения всех Promise и возвращает массив результатов.
      * @param <T> тип результатов Promise

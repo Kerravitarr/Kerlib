@@ -73,7 +73,7 @@ public class AxisDate extends Axis<Date>{
     @Override
     public int maxWidth(Graphics2D g2d, int height,Printer printer){
         var charWidth = tools.getTextHeight(g2d, "А");
-        if(maximum == minimum || charWidth * 2 <= height){
+        if(maximum == minimum || height <= charWidth * 2){
             return printer.setY(MAX_FORMAT.format((long)maximum), height);
         }
         //Теперь мы знаем, на сколько делений максимум мы можем поделить нашу ось
@@ -100,7 +100,7 @@ public class AxisDate extends Axis<Date>{
             }
             var pc = right;
             if(step == start){
-                if(previosK.length >= right.length)
+                if(previosK != right && previosK.length >= right.length)
                     right = right.previos();
                 else {
                     var nb = range / (end * right.previos().length);
