@@ -222,6 +222,10 @@ public class tools {
 	public static void pause_ns(long nsec) {
 		LockSupport.parkNanos(nsec);
 	}
+    /** @return true, если приложение запущено в ОС Windows*/
+    public static boolean isWindows(){
+        return System.getProperty("os.name").toLowerCase().contains("win");
+    }
     
     
     
