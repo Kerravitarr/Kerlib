@@ -155,7 +155,7 @@ public class AxisDate extends Axis<Date>{
     @Override
     public void printHorizontalTicks(Graphics2D g2d, int width, Printer printer){
         var testDate = (long)maximum;
-        if(maximum == minimum){
+        if(maximum == minimum || width < 1){
             printer.setX(MAX_FORMAT.format(testDate), width);
             return;
         }
