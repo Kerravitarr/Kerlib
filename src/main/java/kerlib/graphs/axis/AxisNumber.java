@@ -123,8 +123,15 @@ public class AxisNumber<T extends Number> extends Axis<T>{
         {
             var hr = height/range;
             printer.setY(() -> {
-                for(var i = min; i < max; i += idealTickInterval){
+                var prevI = min;
+                for(var i = min; i < max; ){
                     printer.tick(height-(i-minimum)*hr,formatter.format(i));
+                    
+                    if ((i += idealTickInterval) == prevI) {
+                        if (idealTickInterval > 0) i = Math.nextUp(i);
+                        else i = Math.nextDown(i);
+                    }
+                    prevI = i;
                 }
             }, v -> height-(v-minimum)*hr, v -> formatter.format((height-v)/hr+minimum));
         }
@@ -215,8 +222,16 @@ public class AxisNumber<T extends Number> extends Axis<T>{
         {
             var wr = width/range;
             printer.setX(() -> {
-                for(var i = min; i < max; i += idealTickInterval){
+                var prevI = min;
+                
+                for(var i = min; i < max;){
                     printer.tick((i-minimum)*wr,formatter.format(i));
+                    
+                    if ((i += idealTickInterval) == prevI) {
+                        if (idealTickInterval > 0) i = Math.nextUp(i);
+                        else i = Math.nextDown(i);
+                    }
+                    prevI = i;
                 }
             }, v -> (v - minimum)*wr, v -> formatter.format(v/wr+minimum), kerlib.draw.tools.getTextWidth(g2d, formatter.format(max)));
         }
