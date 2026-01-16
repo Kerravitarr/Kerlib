@@ -243,11 +243,17 @@ public class ITextPane extends JTextPane {
 	 * @throws IllegalArgumentException если длина отрицательная
 	 */
 	public void selectText(int startpos, int lenght, Style style){
-		if(lenght < 0){
+        selectText(this, startpos, lenght, style);
+	}
+    
+	public static void selectText(JTextPane panel, int startpos, int lenght, java.util.function.Function<Style,Style> style){
+        selectText(panel, startpos, lenght,style.apply(new Style()));
+    }
+	public static void selectText(JTextPane panel, int startpos, int lenght, Style style){
+		if(lenght < 0)
 			throw new IllegalArgumentException("Длина не может быть отрицательной!!!");
-		}
-		final var doc = this.getStyledDocument();
-		final var sas = new SimpleAttributeSet();
+		var doc = panel.getStyledDocument();
+		var sas = new SimpleAttributeSet();
 		
         var unset = style.set(sas);
         
@@ -255,9 +261,9 @@ public class ITextPane extends JTextPane {
         
         unset.accept(sas);
         
-		final var end = startpos + lenght;
+		var end = startpos + lenght;
 		doc.setCharacterAttributes(end,0, sas, false);
-	}
+    }
     
 	/**
 	 * Сбрасывает все стили форматирования текста.
