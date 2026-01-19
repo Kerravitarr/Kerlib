@@ -400,6 +400,7 @@ public class tools {
 			icon.addActionListener(_ -> {
 				mainFrame.setVisible(true);
 				mainFrame.setExtendedState(java.awt.Frame.NORMAL);
+                mainFrame.toFront();
 			});
 			java.awt.SystemTray.getSystemTray().add(icon);
             
