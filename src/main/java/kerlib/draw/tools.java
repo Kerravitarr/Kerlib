@@ -176,25 +176,73 @@ public class tools {
 	 * @return прямоугольник, ограничивающий текст
 	 */
 	public static Rectangle2D drawString(Graphics g, double x, double y, String text, alignmentX alX, alignmentY alY){
-		final var fm = g.getFontMetrics();
-		final var rect = fm.getStringBounds(text, g);
+		var fm = g.getFontMetrics();
+		var rect = fm.getStringBounds(text, g);
 
-		final var textHeight = rect.getHeight();
-		final var textWidth = rect.getWidth();
+		var textHeight = rect.getHeight();
+		var textWidth = rect.getWidth();
 		
-		final var cornerX = switch(alX){
+		var cornerX = switch(alX){
 			case left -> x;
 			case center ->  x - (textWidth / 2);
 			case right -> x - textWidth;
 		};
-		final var cornerY = switch(alY){
+		var cornerY = switch(alY){
 			case top -> y - textHeight;
 			case center -> y - (textHeight / 2);
 			case bottom -> y;
-		} + fm.getAscent();
-		g.drawString(text, kerlib.tools.round(cornerX), kerlib.tools.round(cornerY));
+		};
+		g.drawString(text, kerlib.tools.round(cornerX), kerlib.tools.round(cornerY + fm.getAscent()));
 		return rect;
 	}
+    public static Rectangle2D drawString(Graphics g, double x1, double y1, double x2, double y2, String text, alignmentX alX, alignmentY alY){
+        var fm = g.getFontMetrics();
+		var rect = fm.getStringBounds(text, g);
+
+		var textHeight = rect.getHeight();
+		var textWidth = rect.getWidth();
+        
+        if (!(g instanceof java.awt.Graphics2D)) {
+            return null;
+        }        
+        var g2d = (java.awt.Graphics2D) g;
+        // Сохраняем оригинальные настройки трансформации
+        var originalTransform = g2d.getTransform();
+        // Вычисляем угол поворота
+        var dx = x2 - x1;
+        var dy = y2 - y1;
+        var angle = Math.atan2(dy, dx);
+        var lineLength = Math.sqrt(dx * dx + dy * dy);
+        
+        // Получаем размеры текста
+        var descent = fm.getDescent();
+        
+        var cornerX = switch (alX) {
+            case left -> 0;
+            case center -> (lineLength - textWidth) / 2.0;
+            case right -> lineLength - textWidth;
+        };
+        var corneryY = switch (alY) {
+            case top -> textHeight;
+            case center -> (textHeight - descent) / 2.0;
+            case bottom -> -descent;
+        };
+        
+        // Применяем трансформацию:
+        // 1. Перенос в начальную точку (x1, y1)
+        // 2. Поворот на вычисленный угол
+        // 3. Рисуем текст в точке (cornerX, corneryY)
+        var transform = new AffineTransform();
+        transform.translate(x1, y1);
+        transform.rotate(angle);
+        g2d.setTransform(transform);
+        g2d.drawString(text, (float) cornerX, (float) corneryY);
+        
+        // Восстанавливаем оригинальную трансформацию
+        g2d.setTransform(originalTransform);
+        
+        return rect;
+    }
 	
 	/**
 	 * Возвращает высоту текста для заданного шрифта.
