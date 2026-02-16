@@ -218,7 +218,11 @@ public class NumberPanel<NumberT extends Number & Comparable<NumberT>> extends A
         initLabel(label, texter);
         initReset(reset, buttoner, texter, defVal);
         step = (NumberT)(mi == null || ma == null || !(mi instanceof Number) || !(ma instanceof Number || step != null) ? (step == null ? kerlib.tools.unbox(MainClazz,1) : step) : (kerlib.tools.unbox(MainClazz,(((Number)ma).doubleValue() - ((Number)mi).doubleValue())/100d )));
-        valueSpiner.setModel(new javax.swing.SpinnerNumberModel(nowVal,mi,ma,step));
+        try{
+            valueSpiner.setModel(new javax.swing.SpinnerNumberModel(nowVal,mi,ma,step));
+        } catch(java.lang.IllegalArgumentException ex){
+            throw new java.lang.IllegalArgumentException(ex.getMessage() + " in NumberPanel " + name);
+        }
         if (mi == null && ma == null)       valueSpiner.setToolTipText("V ∈ R");
 		else if (mi != null && ma == null)  valueSpiner.setToolTipText("V ≥ " + mi.toString());
 		else if (mi == null && ma != null)  valueSpiner.setToolTipText("V ≤ " + ma.toString());
