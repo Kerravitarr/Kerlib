@@ -432,6 +432,7 @@ public class tools {
             throw new RuntimeException(e1);
 		}
     }
+    
     /**
 	 * Создает иконку в системном трее для приложения.
 	 * @param mainFrame главное окно приложения
@@ -446,8 +447,10 @@ public class tools {
 			icon.setImageAutoSize(true);
 
 			icon.addActionListener(_ -> {
-				mainFrame.setVisible(true);
-				mainFrame.setExtendedState(java.awt.Frame.NORMAL);
+                if(!mainFrame.isVisible()){
+                    mainFrame.setVisible(true);
+                    mainFrame.setExtendedState(java.awt.Frame.NORMAL);
+                }
                 mainFrame.toFront();
 			});
 			java.awt.SystemTray.getSystemTray().add(icon);
