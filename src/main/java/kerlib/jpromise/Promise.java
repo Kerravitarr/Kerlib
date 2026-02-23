@@ -214,7 +214,12 @@ public class Promise<T> {
                 if(onrejected != null)onrejected.accept(error);
                 else logger.log(java.util.logging.Level.SEVERE, null, error);
             } else {
-                onfulfilled.accept(result);
+                try {
+                    onfulfilled.accept(result);
+                } catch(Exception ex){
+                    if(onrejected != null) onrejected.accept(ex);
+                    else logger.log(java.util.logging.Level.SEVERE, null, ex);
+                }
             }
         });
         return this;
