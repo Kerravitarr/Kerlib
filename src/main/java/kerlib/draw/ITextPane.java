@@ -94,6 +94,12 @@ public class ITextPane extends JTextPane {
          * @return новый стиль с цветом
          */
         public Style foreground(Color c){return next(StyleConstants.Foreground, c);}
+        /**
+         * Устанавливает цвет фона.
+         * @param c цвет
+         * @return новый стиль с цветом
+         */
+        public Style background(Color c){return next(StyleConstants.Background, c);}
         
         /**
          * Устанавливает жирность текста.

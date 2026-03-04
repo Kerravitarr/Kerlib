@@ -129,7 +129,7 @@ public class ILinePanel extends JPanel {
 	 * @return текущий объект
 	 */
 	public ILinePanel separator(){
-		add(new javax.swing.JSeparator(javax.swing.SwingConstants.HORIZONTAL));
+		add(new javax.swing.JSeparator(!isHorisontal() ? javax.swing.SwingConstants.HORIZONTAL : javax.swing.SwingConstants.VERTICAL));
 		return this;
 	}
 	public ILinePanel spinner(Number value, Comparable<?> minimum, Comparable<?> maximum, Number stepSize, java.util.function.Consumer<Number> edit){
