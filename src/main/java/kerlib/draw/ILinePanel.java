@@ -21,9 +21,8 @@ import javax.swing.JPanel;
 public class ILinePanel extends JPanel {
     ///Ориентация панели
     private boolean isHorisontal(){return getLayout() instanceof javax.swing.BoxLayout bl && bl.getAxis() == javax.swing.BoxLayout.X_AXIS;};
-	public ILinePanel(){
-		this(javax.swing.BoxLayout.X_AXIS);
-	}
+	public ILinePanel(){this(true);}
+	public ILinePanel(boolean isHorisontalOrder){this(isHorisontalOrder ? javax.swing.BoxLayout.X_AXIS : javax.swing.BoxLayout.Y_AXIS);}
 	public ILinePanel(int axis){
 		super();
 		setLayout(new javax.swing.BoxLayout(this, axis));
@@ -65,6 +64,15 @@ public class ILinePanel extends JPanel {
 		});
 		return this;
 	}
+	public ILinePanel scrollTextArea(java.util.function.Consumer<javax.swing.JTextArea> text){
+		var element = new javax.swing.JTextArea();
+        tools.makeUndoable(element);
+		element.setWrapStyleWord(true);
+		element.setLineWrap(true);
+		text.accept(element);
+		add(new javax.swing.JScrollPane(element));
+		return this;
+	}
 	public ILinePanel textArea(java.util.function.Consumer<javax.swing.JTextArea> text){
 		var element = new javax.swing.JTextArea();
         tools.makeUndoable(element);
@@ -76,6 +84,7 @@ public class ILinePanel extends JPanel {
 	}
 	public ILinePanel textField(java.util.function.Consumer<javax.swing.JTextField> text){
 		var element = new javax.swing.JTextField();
+        element.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, element.getPreferredSize().height));
         tools.makeUndoable(element);
 		text.accept(element);
 		add(element);
@@ -88,7 +97,13 @@ public class ILinePanel extends JPanel {
 		return this;
 	}
 	public ILinePanel panel(java.util.function.Consumer<ILinePanel> panel){
-		return panel(javax.swing.BoxLayout.X_AXIS, panel);
+		return panel(true, panel);
+	}
+    public ILinePanel panel(boolean isHorisontalOrder, java.util.function.Consumer<ILinePanel> panel){
+		var element = new ILinePanel(isHorisontalOrder);
+		add(element);
+		panel.accept(element);
+		return this;
 	}
 	public ILinePanel panel(int axis, java.util.function.Consumer<ILinePanel> panel){
 		var element = new ILinePanel(axis);
@@ -139,6 +154,7 @@ public class ILinePanel extends JPanel {
 	}
 	public javax.swing.JSpinner spinner(Number value, Comparable<?> minimum, Comparable<?> maximum, Number stepSize){
 		var element = new javax.swing.JSpinner(new javax.swing.SpinnerNumberModel(value, minimum, maximum, stepSize));
+        element.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, element.getPreferredSize().height));
 		final var jtf = ((javax.swing.JSpinner.DefaultEditor) element.getEditor()).getTextField();
         jtf.addKeyListener(new KeyAdapter() {
             @Override

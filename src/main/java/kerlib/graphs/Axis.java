@@ -251,7 +251,8 @@ public abstract class Axis<T> {
      * @return null, если значение не подходит под подпись
      */
     String XtoString(double x) {
-        if(x < horizontalPrinter.xyOffset) return null;
+        if(horizontalPrinter == null) return null;
+        else if(x < horizontalPrinter.xyOffset) return null;
         else if(x > horizontalPrinter.xyOffset+horizontalPrinter.length) return null;
         else return horizontalPrinter.toString(x);
     }   
@@ -260,7 +261,8 @@ public abstract class Axis<T> {
      * @return null, если значение не подходит под подпись
      */
     String YtoString(double y) {
-        if(y < vertivalPrinter.xyOffset) return null;
+        if(vertivalPrinter == null) return null;
+        else if(vertivalPrinter == null || y < vertivalPrinter.xyOffset) return null;
         else if(y > vertivalPrinter.xyOffset+vertivalPrinter.length) return null;
         else return vertivalPrinter.toString(y);
     }

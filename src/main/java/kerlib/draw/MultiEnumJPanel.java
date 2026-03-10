@@ -27,7 +27,7 @@ public class MultiEnumJPanel<VALUE> extends javax.swing.JPanel {
     public MultiEnumJPanel() {
         initComponents();
         autoCompletion = new AutoCompletion(addValue);
-        final var com = (JTextField) addValue.getEditor().getEditorComponent();
+        var com = (JTextField) addValue.getEditor().getEditorComponent();
         com.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent event) {
