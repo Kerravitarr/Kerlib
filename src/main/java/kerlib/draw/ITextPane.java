@@ -207,7 +207,10 @@ public class ITextPane extends JTextPane {
 				text = kerlib.tools.escape(t);
 		}
 	}
-    
+
+    public ITextPane() {
+        setToolTipText(""); //Иначе не будет работать всплывающая подсказка!
+    }
     
     
     
