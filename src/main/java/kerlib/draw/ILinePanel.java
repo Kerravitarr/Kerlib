@@ -19,6 +19,10 @@ import javax.swing.JPanel;
  * @author Kerravitarr
  */
 public class ILinePanel extends JPanel {
+    public record ToStringRecord<T>(T o, java.util.function.Function<T,String> to_string){
+        @Override public String toString(){return to_string.apply(o);}
+    }
+    
     ///Ориентация панели
     private boolean isHorisontal(){return getLayout() instanceof javax.swing.BoxLayout bl && bl.getAxis() == javax.swing.BoxLayout.X_AXIS;};
 	public ILinePanel(){this(true);}
@@ -82,12 +86,16 @@ public class ILinePanel extends JPanel {
 		add(element);
 		return this;
 	}
-	public ILinePanel textField(java.util.function.Consumer<javax.swing.JTextField> text){
-		var element = new javax.swing.JTextField();
+	public javax.swing.JTextField ncTextField(){
+        var element = new javax.swing.JTextField();
         element.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, element.getPreferredSize().height));
         tools.makeUndoable(element);
-		text.accept(element);
 		add(element);
+        return element;
+    }
+	public ILinePanel textField(java.util.function.Consumer<javax.swing.JTextField> text){
+		var element = ncTextField();
+		text.accept(element);
 		return this;
 	}
 	public ILinePanel checkBox(java.util.function.Consumer<javax.swing.JCheckBox> check){
@@ -177,17 +185,18 @@ public class ILinePanel extends JPanel {
 	}
     
 	public <T> ILinePanel сomboBox(java.util.List<T> values,T select, java.util.function.Function<T,String> to_string, java.util.function.Consumer<T> edit){
-		var cb = new javax.swing.JComboBox();
-        class rec{
-            T o;
-            public rec(T i){o = i;}
-            @Override public String toString(){return to_string.apply(o);}
-        }
-        cb.setModel(new DefaultComboBoxModel(values.stream().map(rec::new).toArray()));
-        cb.addActionListener(l -> edit.accept(((rec)cb.getSelectedItem()).o));
+		var cb = ncComboBox(values, select, to_string);
+        cb.addActionListener(l -> edit.accept(((ToStringRecord<T>)cb.getSelectedItem()).o));
+        edit.accept(select);
+		return this;
+	}
+    
+	public <T> javax.swing.JComboBox<ToStringRecord<T>> ncComboBox(java.util.List<T> values, T select, java.util.function.Function<T,String> to_string){
+		var cb = new javax.swing.JComboBox<ToStringRecord<T>>();
+        cb.setModel(new DefaultComboBoxModel(values.stream().map(e -> new ToStringRecord(e,to_string)).toArray()));
         cb.setSelectedIndex(java.util.stream.IntStream.range(0, values.size()).filter(i -> java.util.Objects.equals(values.get(i), select)).findAny().getAsInt());
 		add(cb);
-		return this;
+		return cb;
 	}
     
     
