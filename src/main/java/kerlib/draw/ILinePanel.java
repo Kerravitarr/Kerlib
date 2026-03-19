@@ -77,6 +77,14 @@ public class ILinePanel extends JPanel {
 		add(new javax.swing.JScrollPane(element));
 		return this;
 	}
+	public javax.swing.JTextArea ncTextArea(){
+		var element = new javax.swing.JTextArea();
+        tools.makeUndoable(element);
+		element.setWrapStyleWord(true);
+		element.setLineWrap(true);
+		add(element);
+		return element;
+	}
 	public ILinePanel textArea(java.util.function.Consumer<javax.swing.JTextArea> text){
 		var element = new javax.swing.JTextArea();
         tools.makeUndoable(element);
