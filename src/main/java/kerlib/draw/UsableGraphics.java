@@ -42,7 +42,7 @@ public class UsableGraphics {
     /// @param y0
 	/// @param d - направление
 	/// @param lenght - длина усов
-	/// @param angl - угол между стрелками, в градусах
+	/// @param angl - угол между стрелками, в радианах!
     /// @return текущий объект
     public UsableGraphics arrow(double x0, double y0, tools.derect d, double lenght, double angl){
         kerlib.draw.tools.arrow(g, x0, y0, d, lenght, angl);
@@ -53,7 +53,7 @@ public class UsableGraphics {
     /// @param y0
 	/// @param d - направление, в радианах
 	/// @param lenght - длина усов
-	/// @param angl - угол между стрелками, в градусах
+	/// @param angl - угол между стрелками, в радианах!
     /// @return текущий объект
     public UsableGraphics arrow(double x0, double y0, double d, double lenght, double angl){
 		double an = d + angl;

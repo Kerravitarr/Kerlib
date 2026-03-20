@@ -32,7 +32,7 @@ public class MultiEnumJPanel<VALUE> extends javax.swing.JPanel {
             @Override
             public void keyPressed(KeyEvent event) {
                 JComboBoxCallActionPerformed = true;
-                final var text = com.getText().trim();
+                var text = com.getText().trim();
                 if (event.getKeyChar() == KeyEvent.VK_BACK_SPACE && text.isEmpty()) {
                     remove();
                 } else if (event.getKeyChar() == KeyEvent.VK_ENTER) {

@@ -64,16 +64,20 @@ public class AutoCompletion extends PlainDocument {
 				hitBackspace = false;
 				switch (e.getKeyCode()) {
 					case KeyEvent.VK_BACK_SPACE -> {
-                        try {
-                            hitBackspace = lookupItem(getText(0, editor.getSelectionStart())) != null;
-                        } catch (BadLocationException ex) {
-                            hitBackspace = true;
+                        if(!isNew){
+                            try {
+                                hitBackspace = lookupItem(getText(0, editor.getSelectionStart())) != null;
+                            } catch (BadLocationException ex) {
+                                hitBackspace = true;
+                            }
                         }
                         hitBackspaceOnSelection = editor.getSelectionStart() != editor.getSelectionEnd();
                     }
 					case KeyEvent.VK_DELETE -> { //Эту вообще игнорируем
-                        e.consume();
-                        comboBox.getToolkit().beep();
+                        if(!isNew){
+                            e.consume();
+                            comboBox.getToolkit().beep();
+                        }
                     }
 				}
             }
@@ -188,14 +192,14 @@ public class AutoCompletion extends PlainDocument {
 	}
 
 	private Object lookupItem(String pattern) {
-		Object selectedItem = model().getSelectedItem();
+		var selectedItem = model().getSelectedItem();
 		// only search for a different item if the currently selected does not match
 		if (selectedItem != null && startsWithIgnoreCase(selectedItem.toString(), pattern)) {
 			return selectedItem;
 		} else {
 			// iterate over all items
 			for (int i = 0, n = model().getSize(); i < n; i++) {
-				Object currentItem = model().getElementAt(i);
+				var currentItem = model().getElementAt(i);
 				// current item starts with the pattern?
 				if (currentItem != null && startsWithIgnoreCase(currentItem.toString(), pattern)) {
 					return currentItem;

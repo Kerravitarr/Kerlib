@@ -71,6 +71,8 @@ public class Gravitation<T> {
     private double w_h = 1;
     ///Минимальная скорость перемещения узлов
     private double min_v = 0.001;
+    ///Коэффициент трансформации количества узлов, для того, чтобы регулировать "силу" натяжения между узлами
+    private double K_scale = 1;
     ///Коэффициент экспоненциальной прогрессии
     private static final double EXP_K = 0.9;
 
@@ -102,13 +104,25 @@ public class Gravitation<T> {
     public void set(Collection<T> nodes){
         this.nodes = nodes;
     }
+    /** @return все узлы, на которые действует гравитация*/
+    public Collection<T> getNodes(){return nodes;}
     ///Сохранить пропорции мира. Нужно, чтобы объекты за эти пределы не вылетали
     ///@param width ширина мира
     ///@param height высота мира
     public void set(double width, double height){
+        set(width,height,1);
+    }
+    ///Сохранить пропорции мира. Нужно, чтобы объекты за эти пределы не вылетали
+    ///@param width ширина мира
+    ///@param height высота мира
+    ///@param connectForse коэффициент усиления силы связи между узлами.
+    ///     Если больше 1, то сила станет больше
+    ///     Если меньше 1, то сила сниизтся
+    public void set(double width, double height, double connectForse){
         w_h = width / height;
         ///Скорость около 10 пикселей в кадр
         min_v = 10 / Math.max(width, height);
+        K_scale = Math.max(Double.MIN_VALUE, connectForse);
     }
     ///Сохранить функции преобразования для мира
     public void set(java.util.function.Function<Double, Double> transformX, java.util.function.Function<Double, Double> transformY){
@@ -148,7 +162,7 @@ public class Gravitation<T> {
     ///Обработать воздействие гравитаци
     /// @return максимальное расстояние от центра, или где находится самый дальний узел
     public double gravitation(){
-        var k = Math.sqrt(1d / nodes.size());
+        var k = Math.sqrt(1d / (nodes.size() * K_scale));
         {
             var main = nodes.iterator();
             for (var i = 0; main.hasNext();i++) {
