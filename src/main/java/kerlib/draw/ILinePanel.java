@@ -107,10 +107,14 @@ public class ILinePanel extends JPanel {
 		return this;
 	}
 	public ILinePanel checkBox(java.util.function.Consumer<javax.swing.JCheckBox> check){
-		var element = new javax.swing.JCheckBox();
+		var element = ncCheckBox();
 		check.accept(element);
-		add(element);
 		return this;
+	}
+	public javax.swing.JCheckBox ncCheckBox(){
+		var element = new javax.swing.JCheckBox();
+		add(element);
+		return element;
 	}
 	public ILinePanel panel(java.util.function.Consumer<ILinePanel> panel){
 		return panel(true, panel);
