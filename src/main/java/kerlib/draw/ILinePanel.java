@@ -20,6 +20,8 @@ import javax.swing.JPanel;
  */
 public class ILinePanel extends JPanel {
     public record ToStringRecord<T>(T o, java.util.function.Function<T,String> to_string){
+        public ToStringRecord(T o, java.util.function.Supplier<String> to_string){this(o, _ -> to_string.get());}
+        public ToStringRecord(T o, String to_string){this(o, _ -> to_string);}
         @Override public String toString(){return to_string.apply(o);}
     }
     
@@ -131,12 +133,12 @@ public class ILinePanel extends JPanel {
 		panel.accept(element);
 		return this;
 	}
-	public ILinePanel panel(int axis){
+	public ILinePanel ncPanel(int axis){
 		var element = new ILinePanel(axis);
 		add(element);
         return element;
 	}
-	public ILinePanel panel(){return panel(javax.swing.BoxLayout.X_AXIS);}
+	public ILinePanel ncPanel(){return ncPanel(javax.swing.BoxLayout.X_AXIS);}
 	public ILinePanel filler(){
         filler(isHorisontal());
 		return this;
