@@ -14,11 +14,17 @@ import java.util.Set;
 
 ///Класс, который отвечает за объекты типа JSON
 /// @author Kerravitarr (github.com/Kerravitarr)
-public final class JSON{
+public class JSON{
 	/** Создаёт пустой объект JSON */
 	public JSON(){
 		parametrs = new LinkedHashMap<>();
 	}
+    /**Делает ссылку с объекта
+     * @param copy объект для ссылки. Оба объекта будут указывать на одни данные! 
+     */
+    public JSON(JSON copy){
+        this.parametrs = copy.parametrs;
+    }
 	/**Парсинг JSON строки
 	 * @param parseStr строка, которую разбираем
 	 * @throws JSON.ParseException ошибка разбора, синтаксическая
