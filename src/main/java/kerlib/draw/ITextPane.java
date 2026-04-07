@@ -45,47 +45,29 @@ public class ITextPane extends JTextPane {
 	 * Поддерживает цвет, жирность, подчеркивание и другие атрибуты.
 	 */
 	public static class Style{
-        /** Типы полей стилей */
-        private enum FieldType{
-            BOOL,
-            COLOR,
-            INT,
-            ;            
-            /**
-             * Определяет тип поля по значению.
-             * @param value значение для определения типа
-             * @return тип поля
-             * @throws IllegalArgumentException если тип неизвестен
-             */
-            private static FieldType get(Object value){
-                if(value != null){
-                    var cls = value.getClass();
-                    if(cls.equals(Boolean.class) || cls.equals(boolean.class)) return BOOL;
-                    else if(cls.equals(Integer.class) || cls.equals(int.class)) return INT;
-                    else if(cls.equals(Color.class)) return COLOR;
-                }
-                throw new IllegalArgumentException("Неизвестный тип " + (value == null ? null : value.getClass()));
-            }
-        }
+        /**Особый объект, означающий, что поле надо удалить!*/
+        private final static Object REMOVE_O = new Object();
 
         /** Создает пустой стиль */
-        public Style(){this(null,null);}
+        public Style(){this(null,null,null,null,null);}
         
         /**
-         * Создает стиль с одним атрибутом.
-         * @param styleConstantField константа стиля из StyleConstants
-         * @param value значение атрибута
-         */
-        public Style(Object styleConstantField, Object value) {this(styleConstantField, value,null);}
-        
-        /**
-         * Добавляет следующий атрибут стиля в цепочку.
-         * @param styleConstantField константа стиля из StyleConstants
-         * @param value значение атрибута
+         * Добавляет следующий атрибут стиля символов в цепочку.
+         * @param сharacterAttribute константа стиля из StyleConstants
+         * @param сharacterValue значение атрибута
          * @return новый стиль с добавленным атрибутом
          */
-        public Style next(Object styleConstantField, Object value){
-            return new Style(styleConstantField, value, this);
+        public Style characterChain(Object сharacterAttribute, Object сharacterValue){
+            return new Style(сharacterAttribute, сharacterValue,null,null, this);
+        }
+        /**
+         * Добавляет следующий атрибут стиля атрибута в цепочку.
+         * @param paragraphAttribute константа стиля из StyleConstants
+         * @param paragraphValue значение атрибута
+         * @return новый стиль с добавленным атрибутом
+         */
+        public Style paragraphChain(Object paragraphAttribute, Object paragraphValue){
+            return new Style(null,null,paragraphAttribute, paragraphValue, this);
         }
         
         /**
@@ -93,20 +75,20 @@ public class ITextPane extends JTextPane {
          * @param c цвет
          * @return новый стиль с цветом
          */
-        public Style foreground(Color c){return next(StyleConstants.Foreground, c);}
+        public Style foreground(Color c){return characterChain(StyleConstants.Foreground, c);}
         /**
          * Устанавливает цвет фона.
          * @param c цвет
          * @return новый стиль с цветом
          */
-        public Style background(Color c){return next(StyleConstants.Background, c);}
+        public Style background(Color c){return characterChain(StyleConstants.Background, c);}
         
         /**
          * Устанавливает жирность текста.
          * @param isBold true для жирного текста
          * @return новый стиль с жирностью
          */
-        public Style bold(boolean isBold){return next(StyleConstants.Bold, isBold);}
+        public Style bold(boolean isBold){return characterChain(StyleConstants.Bold, isBold);}
         
         /**
          * Делает текст жирным.
@@ -119,7 +101,7 @@ public class ITextPane extends JTextPane {
          * @param isUnderline true для подчеркнутого текста
          * @return новый стиль с подчеркиванием
          */
-        public Style underline(boolean isUnderline){return next(StyleConstants.Underline, isUnderline);}
+        public Style underline(boolean isUnderline){return characterChain(StyleConstants.Underline, isUnderline);}
         
         /**
          * Делает текст подчеркнутым.
@@ -127,58 +109,77 @@ public class ITextPane extends JTextPane {
          */
         public Style underline(){return underline(true);}
         
-        protected Style(Object styleConstantField, Object value, Style next) {
-            this.styleConstantField = styleConstantField;
-            this.value = value;
+        /**Создаёт один элемент стиля
+         * @param сharacterAttribute Символьный атрибут
+         * @param сharacterValue Значение символьного атрибута
+         * @param paragraphAttribute Абзацный атрибут
+         * @param paragraphValue Значение абзацного атрибута
+         * @param next 
+         */
+        protected Style(Object сharacterAttribute, Object сharacterValue, Object paragraphAttribute, Object paragraphValue, Style next) {
+            this.сharacterAttribute = сharacterAttribute;
+            this.сharacterValue = сharacterValue;
+            this.paragraphAttribute = paragraphAttribute;
+            this.paragraphValue = paragraphValue;
             this.next = next;
         }
         
         /**
-         * Применяет стиль к набору атрибутов.
+         * Применяет стиль символов к набору атрибутов.
          * @param a набор атрибутов для модификации
          * @return функция для отмены изменений
          */
-        public java.util.function.Consumer<SimpleAttributeSet> set(SimpleAttributeSet a){
+        public java.util.function.Consumer<SimpleAttributeSet> setCharacterAttributes(SimpleAttributeSet a){
+            return setAttributes(a, сharacterAttribute, сharacterValue, next == null ? null : ns -> next.setCharacterAttributes(ns));
+        }
+        /**
+         * Применяет стиль символов к набору атрибутов.
+         * @param a набор атрибутов для модификации
+         * @return функция для отмены изменений
+         */
+        public java.util.function.Consumer<SimpleAttributeSet> setParagraphAttributes(SimpleAttributeSet a){
+            return setAttributes(a, paragraphAttribute, paragraphValue, next == null ? null : ns -> next.setParagraphAttributes(ns));
+        }
+        /**Применяет стиль и все последующие стили
+         * @param a
+         * @param attribute
+         * @param value
+         * @param next
+         * @return 
+         */
+        private static java.util.function.Consumer<SimpleAttributeSet> setAttributes(SimpleAttributeSet a, Object attribute, Object value, java.util.function.Function<SimpleAttributeSet, java.util.function.Consumer<SimpleAttributeSet>> next){
             if(value == null){
-                if(next != null) return next.set(a);
+                if(next != null) return next.apply(a);
                 else return _ -> {};
             }
-            var t = FieldType.get(value);
-            var old = oldDate(a,t, styleConstantField);
-            a.addAttribute(styleConstantField, value);
+            var old = java.util.Objects.requireNonNullElse(a.getAttribute(attribute), REMOVE_O);
+            a.addAttribute(attribute, value);
             if(next != null){
-                var nextUnset = next.set(a);
+                var nextUnset = next.apply(a);
                 return unset -> {
-                    a.addAttribute(styleConstantField, old);
+                    if(old == REMOVE_O)
+                        a.removeAttribute(attribute);
+                    else
+                        a.addAttribute(attribute, old);
                     nextUnset.accept(a);
                 };
             } else {
-                return unset -> a.addAttribute(styleConstantField, old);
-            }
-        }
-        
-        
-        /** Возвращает старое значение атрибута перед изменением */
-        private static Object oldDate(SimpleAttributeSet a,FieldType type,  Object name){
-            switch (type) {
-                case BOOL -> {
-                    var bold = (Boolean) a.getAttribute(name);
-                    if (bold != null) return bold.booleanValue();
-                    else return false;
-                }
-                case COLOR -> {
-                    var fg = (Color) a.getAttribute(name);
-                    if (fg == null) fg = Color.black;
-                    return fg;
-                }
-                default ->
-                    throw new IllegalArgumentException(String.valueOf(type));
+                return unset -> {
+                    if(old == REMOVE_O)
+                        a.removeAttribute(attribute);
+                    else
+                        a.addAttribute(attribute, old);
+                };
             }
         }
         /**константа стиля из StyleConstants. */
-        private final Object styleConstantField;
+        private final Object сharacterAttribute;
         /**значение атрибута. */
-        private final Object value;
+        private final Object сharacterValue;
+        /**константа стиля из StyleConstants. */
+        private final Object paragraphAttribute;
+        /**значение атрибута. */
+        private final Object paragraphValue;
         /**следующий стиль. */
         private final Style next;
 	}
@@ -262,16 +263,19 @@ public class ITextPane extends JTextPane {
 		if(lenght < 0)
 			throw new IllegalArgumentException("Длина не может быть отрицательной!!!");
 		var doc = panel.getStyledDocument();
-		var sas = new SimpleAttributeSet();
+		var saCA = new SimpleAttributeSet();
+		var saPA = new SimpleAttributeSet();
 		
-        var unset = style.set(sas);
-        
-		doc.setCharacterAttributes(startpos, lenght, sas, false);
-        
-        unset.accept(sas);
+        var unset = style.setCharacterAttributes(saCA);
+        var unsetPA = style.setParagraphAttributes(saPA);
+		doc.setCharacterAttributes(startpos, lenght, saCA, false);
+		doc.setParagraphAttributes(startpos, lenght, saPA, false);
+        unset.accept(saCA);
+        unsetPA.accept(saPA);
         
 		var end = startpos + lenght;
-		doc.setCharacterAttributes(end,0, sas, false);
+		doc.setCharacterAttributes(end,0, saCA, false);
+		doc.setParagraphAttributes(end,0, saPA, false);
     }
     
 	/**

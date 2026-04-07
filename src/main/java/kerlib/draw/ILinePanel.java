@@ -92,6 +92,7 @@ public class ILinePanel extends JPanel {
         tools.makeUndoable(element);
 		element.setWrapStyleWord(true);
 		element.setLineWrap(true);
+        element.setMinimumSize(new java.awt.Dimension(0, element.getPreferredSize().height));
 		text.accept(element);
 		add(element);
 		return this;
