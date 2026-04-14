@@ -23,6 +23,7 @@ public class NSpinner extends JSpinner {
     }
     public NSpinner(SpinnerNumberModel model) {
         super(model);
+        setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, getPreferredSize().height));
         classNumber = model.getNumber().getClass();
         final var jtf = ((javax.swing.JSpinner.DefaultEditor) this.getEditor()).getTextField();
         jtf.addKeyListener(new KeyAdapter() {
