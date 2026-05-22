@@ -365,6 +365,18 @@ public class Promise<T> {
     public T awaitChecked() throws ExecutionException, InterruptedException {
         return future.get();
     }
+    /**
+     * Синхронно ожидает завершения Promise и возвращает результат.
+     * @param timeout максимальное время, сколько ждать
+     * @param unit размерность единиц времени
+     * @return результат Promise
+     * @throws ExecutionException если Promise завершился с ошибкой
+     * @throws InterruptedException если поток был прерван
+     * @throws java.util.concurrent.TimeoutException если вышло время ожидания ответа, но обещание не выполнено
+     */
+    public T awaitChecked(long timeout, java.util.concurrent.TimeUnit unit ) throws InterruptedException, ExecutionException, TimeoutException {
+        return future.get(timeout, unit);
+    }
     
     /**
      * Синхронно ожидает завершения Promise, оборачивая исключения в RuntimeException.
