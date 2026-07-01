@@ -209,7 +209,7 @@ public class AxisList<T> extends Axis<T>{
     }
     ///Преобразует индекс элемента в текст
     private String format(double index){
-        var find = (int) index;
+        var find = (int) Math.round(index);
         if(find < 0) return "Н/Д";
         for(var i = values.iterator(); i.hasNext();--find,i.next()){
             if(find == 0)
