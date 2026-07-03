@@ -143,28 +143,33 @@ public class tools {
     public static String escape(String s) {
         var builder = new StringBuilder();
         var previousWasASpace = false;
-        for( var c : s.toCharArray() ) {
-            if( c == ' ' ) {
-                if( previousWasASpace ) {
-                    builder.append("&nbsp;");
+        int i = 0;
+        while(i < s.length()){
+            int cp = s.codePointAt(i);
+            i += Character.charCount(cp);
+            if (cp < 128) {
+                var c = (char) cp;
+                if( c == ' ' ) {
+                    if( previousWasASpace ) {
+                        builder.append("&nbsp;");
+                        previousWasASpace = false;
+                        continue;
+                    }
+                    previousWasASpace = true;
+                } else {
                     previousWasASpace = false;
-                    continue;
                 }
-                previousWasASpace = true;
+                switch(c) {
+                    case '<' -> builder.append("&lt;");
+                    case '>' -> builder.append("&gt;");
+                    case '&' -> builder.append("&amp;");
+                    case '"' -> builder.append("&quot;");
+                    case '\n' -> builder.append("<br>");
+                    case '\t' -> builder.append("&nbsp; &nbsp; &nbsp;");
+                    default -> builder.append(c);
+                }
             } else {
-                previousWasASpace = false;
-            }
-            switch(c) {
-                case '<' -> builder.append("&lt;");
-                case '>' -> builder.append("&gt;");
-                case '&' -> builder.append("&amp;");
-                case '"' -> builder.append("&quot;");
-                case '\n' -> builder.append("<br>");
-                case '\t' -> builder.append("&nbsp; &nbsp; &nbsp;");
-                default -> {
-                    if( c < 128 ) builder.append(c);
-                    else builder.append("&#").append((int)c).append(";");
-                }
+                builder.append("&#").append(cp).append(";");
             }
         }
         return builder.toString();
