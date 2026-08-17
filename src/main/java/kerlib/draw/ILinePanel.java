@@ -19,10 +19,32 @@ import javax.swing.JPanel;
  * @author Kerravitarr
  */
 public class ILinePanel extends JPanel {
+    ///Универсальный преобразователь любого объекта в строку
     public record ToStringRecord<T>(T o, java.util.function.Function<T,String> to_string){
         public ToStringRecord(T o, java.util.function.Supplier<String> to_string){this(o, _ -> to_string.get());}
         public ToStringRecord(T o, String to_string){this(o, _ -> to_string);}
         @Override public String toString(){return to_string.apply(o);}
+        ///Создать генератор преобразования из этого объекта
+        public static <T> java.util.function.Function<T,ToStringRecord<T>> generator(java.util.function.Function<T,String> to_string){
+            return o -> new ToStringRecord<>(o, to_string);
+        }
+        ///Создать генератор преобразования из этого объекта
+        public static <T> java.util.function.Function<T,ToStringRecord<T>> generator(java.util.function.Supplier<String> to_string){
+            return o -> new ToStringRecord<>(o, to_string);
+        }
+        ///Создать генератор преобразования из этого объекта
+        public static <T> java.util.function.Function<T,ToStringRecord<T>> generator(String to_string){
+            return o -> new ToStringRecord<>(o, to_string);
+        }
+        
+        @Override
+        public boolean equals(Object o){
+            if(o instanceof ToStringRecord ts)
+                return this.equals(ts.o);
+            else 
+                return java.util.Objects.equals(this.o, o);
+        }
+        @Override public int hashCode() {return o == null ? 0 : o.hashCode();}
     }
     
     ///Ориентация панели
