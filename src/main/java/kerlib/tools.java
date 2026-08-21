@@ -30,6 +30,8 @@ public class tools {
 	 * @return ближайшее число.
 	 */
 	public static double round(double d, int digits) {
+        if (digits <= 0) 
+            throw new IllegalArgumentException("Количество значащих цифр должно быть больше 0");
 		if(d == 0) return 0;
 		else if(d > 0){
 			var pow = digits - Math.ceil(Math.log10(d));
@@ -41,8 +43,29 @@ public class tools {
 			return -Math.round(-d*m)/((double)m);
 		}
 	}
+	/**
+	 * Округляет число до нужного количества занчащих цифр
+	 * @param num округляемое число
+	 * @param n сколько ЗНАЧАЩИХ цифр должно быть в числе
+	 * @return строку, описывающую это число
+	 */
+    public static String roundToString(double num, int n) {
+        if (n <= 0)
+            throw new IllegalArgumentException("Количество значащих цифр должно быть больше 0");
+        if (num == 0)
+            return String.format("%." + (n - 1) + "f", 0.0);
+        var scale = n - ((int) Math.floor(Math.log10(Math.abs(num)))) - 1;
+        var bd = new java.math.BigDecimal(num);
+        if (scale >= 0) {
+            bd = bd.setScale(scale, java.math.RoundingMode.HALF_UP);
+            return bd.toPlainString();
+        } else {
+            bd = bd.setScale(scale, java.math.RoundingMode.HALF_UP);
+            return bd.toPlainString().split("\\.")[0];
+        }
+    }
     
-    	/**Осуществляет преобразование из класса в класс
+    /**Осуществляет преобразование из класса в класс
 	* @param <T> итоговый класс
 	* @param cls класс, который описывает то, к чему мы стремимся
 	* @return объект, нужного типа
