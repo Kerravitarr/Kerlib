@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 
@@ -18,12 +19,14 @@ public class JSON{
 	/** Создаёт пустой объект JSON */
 	public JSON(){
 		parametrs = new LinkedHashMap<>();
+        values = new ArrayList<>();
 	}
     /**Делает ссылку с объекта
      * @param copy объект для ссылки. Оба объекта будут указывать на одни данные! 
      */
     public JSON(JSON copy){
         this.parametrs = copy.parametrs;
+        this.values = copy.values;
     }
 	/**Парсинг JSON строки
 	 * @param parseStr строка, которую разбираем
@@ -53,7 +56,9 @@ public class JSON{
 	 * @return массив разобранных объектов. 
 	 * @throws JSON.ParseException ошибка разбора, синтаксическая
 	 * @throws ClassCastException возникает, когда возвращаемое значение довольно сильно отличается от желаемого
+     * @deprecated Теперь поддерживаются стандартные массивы для JSON
 	 */
+	@Deprecated
 	public static <T> List<T> parse(Class<T> cls,String parseStr) throws ParseException {
 		try {
 			return parse(cls, new StringReader(parseStr));
@@ -69,7 +74,9 @@ public class JSON{
 	 * @throws JSON.ParseException ошибка разбора, синтаксическая
 	 * @throws IOException ошибка разбора, ошибка устройства чтения
 	 * @throws ClassCastException возникает, когда возвращаемое значение довольно сильно отличается от желаемого
+     * @deprecated Теперь поддерживаются стандартные массивы для JSON
 	 */
+	@Deprecated
 	public static <T> List<T> parse(Class<T> cls,Reader in) throws ParseException, IOException {
 		var reader = new TokenReader(in);
 		if(!reader.hasNext()) { // Пустой файл
@@ -82,6 +89,10 @@ public class JSON{
 				throw new ParseException(reader.pos, ERROR.UNEXPECTED_TOKEN, token.value);
 		}
 	}
+    ///@return true, если это объект JSON
+    public boolean isObject(){return !this.parametrs.isEmpty() || this.values.isEmpty();}
+    ///@return true, если это массив каких-то объектов
+    public boolean isArray(){return !this.values.isEmpty() || this.parametrs.isEmpty();}
 	
 	/** Добавить новую пару ключ-значение в объект
 	 * @param <T>
@@ -90,6 +101,7 @@ public class JSON{
 	 * @return текущий объект для возможности создания цепочек
 	 */
 	public <T> JSON add(String key, T value) {
+        if(!this.isObject()) throw new ClassCastException("Это не объект, а массив!");
 		((LinkedHashMap)parametrs).put(key, Serializer.box(value));
 		return this;
 	}
@@ -97,6 +109,7 @@ public class JSON{
     ///@param key ключ
     ///@return предыдущее значение, связанное с ключом, или null, если сопоставление для ключа не было. (Возвращаемое значение null также может указывать на то, что сопоставление ранее связывало null с ключом.)
     public Object remove(String key){
+        if(!this.isObject()) throw new ClassCastException("Это не объект, а массив!");
         return parametrs.remove(key);
     }
 	/**Получает значение по ключу
@@ -154,6 +167,15 @@ public class JSON{
 	public <T> List<T> getA(Class<T> cls, String key,java.util.function.Supplier<List<T>> def) {
 		return Serializer.unboxl(cls,get(key,def));
 	}
+    /**Получает значение массива из текущего объекта
+     * @param <T> требуемый класс
+     * @param cls Объект класса, к оторому нас приведут
+     * @return список, к которому нас приведут
+     */
+    public <T> List<T> getA(Class<T> cls){
+        if(!this.isArray()) throw new ClassCastException("Это не массив, а объект!");
+        return Serializer.unboxl(cls,values);
+    }
 	/**Получает значение массива по ключу
 	 * @param <T>
 	 * @param cls - ожидаемый класс элементов
@@ -222,16 +244,25 @@ public class JSON{
 	 * @param key ключ
 	 * @return true, если ключ тут есть
 	 */
-	public boolean containsKey(String key) { return parametrs.containsKey(key);}
+	public boolean containsKey(String key) {
+        if(!this.isObject()) throw new ClassCastException("Это не объект, а массив!");
+        return parametrs.containsKey(key);
+    }
 
 	/**Очищает все элементы объекта*/
-	public void clear() { parametrs.clear(); }
+	public void clear() { parametrs.clear();values.clear(); }
 	/**Возвращает список всех ключей объекта
 	 * @return список со всеми ключами
 	 */
-	public Set<String> getKeys(){ return parametrs.keySet();}
+	public Set<String> getKeys(){
+        if(!this.isObject()) throw new ClassCastException("Это не объект, а массив!");
+        return parametrs.keySet();
+    }
     ///@return набор всех элементов объекта
-    public Set<Map.Entry<String, ?>> entrySet(){return (Set<Map.Entry<String, ?>> )parametrs.entrySet();}
+    public Set<Map.Entry<String, ?>> entrySet(){
+        if(!this.isObject()) throw new ClassCastException("Это не объект, а массив!");
+        return (Set<Map.Entry<String, ?>> )parametrs.entrySet();
+    }
 	@Override
 	public String toString() { return toJSONString(); }
 
@@ -241,21 +272,52 @@ public class JSON{
         else if(!(obj instanceof JSON)) return false;
         else {
             var eq = (JSON) obj;
+            if(this.isObject() != eq.isObject() || this.isArray() != eq.isArray()) return false;
             //Фильтруем не уникальные поля. Их быть не должно!
-            return parametrs.entrySet().stream().filter(entry -> {
-                var eq_get = eq.parametrs.get(entry.getKey());
-                var this_get = entry.getValue();
-                if(java.util.Objects.deepEquals(eq_get, this_get)) return false;
-                else if(eq_get == null || this_get == null) return true;
-                else {
-                    try{
-                        return !eq_get.equals(kerlib.tools.unbox(eq_get.getClass(),this_get));
-                    } catch (Exception _){
-                        return true;
+            if(this.isObject()){
+                if(parametrs.size() != eq.parametrs.size()) return false;
+                return parametrs.entrySet().stream().allMatch(entry -> {
+                    var eq_get = eq.parametrs.get(entry.getKey());
+                    var this_get = entry.getValue();
+                    
+                    if(java.util.Objects.deepEquals(eq_get, this_get)) return true;
+                    else if(eq_get == null || this_get == null) return false;
+                    else {
+                        try{
+                            return eq_get.equals(kerlib.tools.unbox(eq_get.getClass(),this_get));
+                        } catch (Exception _){
+                            return false;
+                        }
                     }
-                }
-            }).findAny().isEmpty();
+                });
+            } else if(this.isArray()){
+                if(values.size() != eq.values.size()) return false;
+                return java.util.stream.IntStream.range(0, values.size()).allMatch(index ->{
+                    var this_get = values.get(index);
+                    var eq_get = eq.values.get(index);
+                    
+                    if(java.util.Objects.deepEquals(eq_get, this_get)) return true;
+                    else if(eq_get == null || this_get == null) return false;
+                    else {
+                        try{
+                            return eq_get.equals(kerlib.tools.unbox(eq_get.getClass(),this_get));
+                        } catch (Exception _){
+                            return false;
+                        }
+                    }
+                });
+            } else {
+                return true;
+            }
         }
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 37 * hash + Objects.hashCode(this.parametrs);
+        hash = 37 * hash + Objects.hashCode(this.values);
+        return hash;
     }
     
 		
@@ -338,6 +400,7 @@ public class JSON{
 	@SuppressWarnings("unchecked")
 	@Deprecated
 	public <T> T get(String key) {
+        if(!this.isObject()) throw new ClassCastException("Это не объект, а массив!");
 		return (T) parametrs.get(key);
 	}
 	/**
@@ -350,6 +413,7 @@ public class JSON{
 	@SuppressWarnings("unchecked")
 	@Deprecated
 	public <T> List<T> getA(String key) {
+        if(!this.isObject()) throw new ClassCastException("Это не объект, а массив!");
 		return (List<T>) parametrs.get(key);
 	}
 	/**Возвращает объект с учётом значения по умолчанию
@@ -358,33 +422,49 @@ public class JSON{
 	 * @return значение из объекта
 	 */
 	private Object get(String key, java.util.function.Supplier def){
+        if(!this.isObject()) throw new ClassCastException("Это не объект, а массив!");
 		var o = parametrs.get(key);
+		if(o == null) return def == null ? null : def.get();
+		else return o;
+	}
+	/**Возвращает объект с учётом значения по умолчанию
+	 * @param index порядковый номер объекта
+	 * @param def значение по умолчанию
+	 * @return значение из объекта
+	 */
+	private Object get(Integer index, java.util.function.Supplier def){
+        if(!this.isArray()) throw new ClassCastException("Это не массив, а объект!");
+		var o = values.size() < index ? null : values.get(index);
 		if(o == null) return def == null ? null : def.get();
 		else return o;
 	}
 	
 	/**Внутренний метод для печати объекта. Объект состоит из открывающей табы ну и дальше по тексту*/
 	void toBeautifulJSONString(Writer writer,String tabs) throws IOException {
-		writer.write("{");
-		if(tabs != null)
-			writer.write("\n");
-		var isFirst = true;
-		for (var param : parametrs.entrySet()) {
-			if(isFirst) isFirst = false;
-			else if(tabs != null) writer.write(",\n");
-			else writer.write(",");
-			if(tabs != null) {
-				writer.write(tabs + "\t");
-				writer.write("\"" + param.getKey() + "\": ");
-				Serializer.write(param.getValue(), writer, tabs + "\t");
-			} else {
-				writer.write("\"" + param.getKey() + "\":");
-				Serializer.write(param.getValue(), writer, null);
-			}
-		}
-		if(tabs != null)
-			writer.write("\n" + tabs);
-		writer.write("}");
+        if(isObject()){
+            writer.write("{");
+            if(tabs != null)
+                writer.write("\n");
+            var isFirst = true;
+            for (var param : parametrs.entrySet()) {
+                if(isFirst) isFirst = false;
+                else if(tabs != null) writer.write(",\n");
+                else writer.write(",");
+                if(tabs != null) {
+                    writer.write(tabs + "\t");
+                    writer.write("\"" + param.getKey() + "\": ");
+                    Serializer.write(param.getValue(), writer, tabs + "\t");
+                } else {
+                    writer.write("\"" + param.getKey() + "\":");
+                    Serializer.write(param.getValue(), writer, null);
+                }
+            }
+            if(tabs != null)
+                writer.write("\n" + tabs);
+            writer.write("}");
+        } else {
+            Serializer.write(values, writer, tabs);
+        }
 	}
 	
 	/**
@@ -396,13 +476,14 @@ public class JSON{
 	private void parse(Reader in) throws IOException, ParseException{
 		var reader = new TokenReader(in);
 		if(!reader.hasNext()) { // Пустой файл
-			parametrs.clear();
+			clear();
 		} else {
 			var token = reader.next();
-			if(token.type == JSON_TOKEN.BEGIN_OBJECT)
-				parametrs = parseO(reader).parametrs;
-			else
-				throw new ParseException(reader.pos, ERROR.UNEXPECTED_TOKEN, token.value);
+			switch (token.type) {
+                case BEGIN_OBJECT -> parametrs = parseO(reader).parametrs;
+                case BEGIN_ARRAY  -> values = parseA(reader);
+                default -> throw new ParseException(reader.pos, ERROR.UNEXPECTED_TOKEN, token.value);
+            }
 		}
 	}
 	/**
@@ -508,6 +589,9 @@ public class JSON{
 	
 	
 	
-	/**Это список всех параметров объекта. Используется лист пар потому что было важное условие - сохранить порядок данных*/
+	///Это список всех параметров объекта. Используется лист пар потому что было важное условие - сохранить порядок данных
 	private LinkedHashMap<String,?> parametrs;
+    ///Это список всех занчений, для того случая, когда у нас JSON - это список объектов (массив)
+    private List<?> values;
+    
 }
