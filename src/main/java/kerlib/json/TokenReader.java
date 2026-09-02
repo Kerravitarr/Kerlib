@@ -86,7 +86,7 @@ class TokenReader {
                 sb.append(ch);
                 ch = read();
             } while (isDigit(ch));
-            if (ch == '.') {
+            if (ch == '.' || isExp(ch)) {
                 // Если это не число, то может точка?
                 var val = readFracAndExp(sb, ch);
                 return new Token(JSON_TOKEN.NUMBER, isNegativ ? -val : val);
@@ -141,6 +141,9 @@ class TokenReader {
             } else {
                 back(); // А мы хз что это, не к нам
             }
+        } else if (isExp(ch)) {
+            sb.append(ch);
+            sb.append(readExp().toString());
         } else {
             throw new ParseException(pos, ERROR.UNEXPECTED_CHAR, ch);
         }
