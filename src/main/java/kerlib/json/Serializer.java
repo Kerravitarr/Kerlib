@@ -69,8 +69,9 @@ class Serializer {
             if (list.isEmpty()) {
                 writer.write("[]");
             } else {
-                var fcl = list.get(0).getClass();
-                if (!isBase(list.get(0)) || list.stream().anyMatch(v -> !v.getClass().equals(fcl))) {
+                var first_e = list.get(0);
+                var fcl = first_e == null ? null : first_e.getClass();
+                if (!isBase(list.get(0)) || list.stream().anyMatch(v -> fcl == null && v == null || fcl != null && !v.getClass().equals(fcl))) {
                     //У нас сложные или разноплановые объекты
                     writer.write("[");
                     if (tabs != null) {

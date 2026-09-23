@@ -209,9 +209,7 @@ public class ITextPane extends JTextPane {
 		}
 	}
 
-    public ITextPane() {
-        setToolTipText(""); //Иначе не будет работать всплывающая подсказка!
-    }
+    public ITextPane() {}
     
     
     
@@ -287,7 +285,11 @@ public class ITextPane extends JTextPane {
 		doc.setCharacterAttributes(0, Integer.MAX_VALUE, sas, true);
 	}
     /**Удаляет все всплывающие подсказки.*/
-    public void clearToolTip(){toolTips.clear();}
+    public void clearToolTip(){
+        toolTips.clear();
+        if(super.getToolTipText() != null)
+            super.setToolTipText(null);
+    }
 	
     /**
      * Добавляет всплывающую подсказку к участку текста.
@@ -343,7 +345,16 @@ public class ITextPane extends JTextPane {
 		if(st != null)
 			selectTextByPos(startpos,endPos,st);
 		toolTips.add(new TextToolTip(startpos, endPos, t));
+        if(super.getToolTipText() == null)
+            super.setToolTipText("");
 	}
+
+    @Override
+    public void setToolTipText(String text) {
+        clearToolTip();
+        if(text != null)
+            selectToolTip(0, Integer.MAX_VALUE, text);
+    }
     
     @Override
 	public String getToolTipText(MouseEvent event) {

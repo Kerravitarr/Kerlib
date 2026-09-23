@@ -105,6 +105,16 @@ public class JSON{
 		((LinkedHashMap)parametrs).put(key, Serializer.box(value));
 		return this;
 	}
+    /** Добавить новое значение в объект
+	 * @param <T>
+	 * @param value значение
+	 * @return текущий объект для возможности создания цепочек
+	 */
+	public <T> JSON add(T value) {
+        if(!this.isArray()) throw new ClassCastException("Это не массив, а объект!");
+		((List)values).add(Serializer.box(value));
+		return this;
+	}
     ///Удаляет ключ из объекта
     ///@param key ключ
     ///@return предыдущее значение, связанное с ключом, или null, если сопоставление для ключа не было. (Возвращаемое значение null также может указывать на то, что сопоставление ранее связывало null с ключом.)
