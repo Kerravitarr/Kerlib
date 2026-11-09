@@ -152,7 +152,9 @@ public class ZipBuffer<T extends Number>{
             if(!isInfinity && next != null) next.readd(minRingSum);
         }
     }
+    ///@return итератор, по которому можно перебрать буфер
     public Iterator<T> iterator(){return bigRing.iterator();}
+    ///@return буфер, как список
     public List<T> asList(){return bigRing.stream().toList();}
 
     @Override

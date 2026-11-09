@@ -29,7 +29,11 @@ public class Hash implements RandomGenerator{
     public <T> T next(T[] arr){
         return arr[nextInt(arr.length)];
     }
-    
+
+    @Override
+    public String toString() {
+        return Long.toString(hash);
+    }
     
     /**
 	 * Вычисляет обратимый хэш для числа.
@@ -79,9 +83,79 @@ public class Hash implements RandomGenerator{
 		x = x ^ (x >>> 30) ^ (x >>> 60);
 		return x;
 	}
+    ///Алгоритм смешивания чисел на основе MurmurHash3
+    /// @param seed Начальное число (сид) для инициализации миксера.
+    /// @param numbers Массив или вариативный список чисел для миксования.
+    /// @return Уникальное псевдослучайное число (хэш).
+    public static int mix(int seed, int... numbers){
+        if (numbers == null || numbers.length == 0) {
+            return 0;
+        }
+        var hash = seed;
+        for (var k : numbers) {
+            k *= 0xcc9e2d51;
+            k = Integer.rotateLeft(k, 15);
+            k *= 0x1b873593;
 
+            hash ^= k;
+            hash = Integer.rotateLeft(hash, 13);
+            hash = hash * 5 + 0xe6546b64;
+        }
+        int lengthInBytes = numbers.length * 4;
+        hash ^= lengthInBytes;
+        
+        return scramble(hash);
+    }
+    ///Алгоритм смешивания чисел на основе MurmurHash3
+    /// @param seed Начальное число (сид) для инициализации миксера.
+    /// @param numbers Массив или вариативный список чисел для миксования.
+    /// @return Уникальное псевдослучайное число (хэш).
+    public static long mix(long seed, long... numbers){
+        if (numbers == null || numbers.length == 0) {
+            return 0;
+        }
+        var hash = seed;
+        for (var k : numbers) {
+            k *= 0xff51afd7ed558ccdL;
+            k = Long.rotateLeft(k, 31);
+            k *= 0xc4ceb9fe1a85ec53L;
+
+            hash ^= k;
+            hash = Long.rotateLeft(hash, 27);
+            hash = hash * 5 + 0x52dce729;
+        }
+        long lengthInBytes = (long) numbers.length * 8;
+        hash ^= lengthInBytes;
+        
+        return scramble(hash);
+    }
     @Override
     public long nextLong() {
         return Hash.to(hash++);
     }
+    
+    
+    
+    
+    
+    /// Базовая функция перемешивания битов (MurmurHash3 константы)
+    private static int scramble(int hash) {
+        hash ^= hash >>> 16;
+        hash *= 0x85ebca6b;
+        hash ^= hash >>> 13;
+        hash *= 0xc2b2ae35;
+        hash ^= hash >>> 16;
+        return hash;
+    }
+
+    /// Базовая функция перемешивания битов (MurmurHash3 константы)
+    private static long scramble(long hash) {
+        hash ^= hash >>> 33;
+        hash *= 0xff51afd7ed558ccdL;
+        hash ^= hash >>> 33;
+        hash *= 0xc4ceb9fe1a85ec53L;
+        hash ^= hash >>> 33;
+        return hash;
+    }
+
 }

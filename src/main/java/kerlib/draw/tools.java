@@ -404,7 +404,7 @@ public class tools {
                 old_text = new_text;
                 // Используем Promise для избежания исключений при модификации документа из слушателя
                new kerlib.jpromise.Promise<>(resolve ->{
-                   newText.accept(text.getText());
+                   newText.accept(new_text);
                    return resolve.apply(null);
                });
             }
